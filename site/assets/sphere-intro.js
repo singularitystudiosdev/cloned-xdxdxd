@@ -119,7 +119,7 @@
   const FIB = fibDirs(ICONS.length);
   const tiles = ICONS.map((icon) => {
     const t = document.createElement("div");
-    t.style.cssText = "position:absolute;left:0;top:0;width:" + TILE + "px;height:" + TILE + "px;border-radius:12px;background:#16161a;box-shadow:0 0 0 1px rgba(255,255,255,.07),0 10px 30px -10px rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;will-change:transform,opacity,filter;opacity:0;";
+    t.style.cssText = "position:absolute;left:0;top:0;width:" + TILE + "px;height:" + TILE + "px;border-radius:12px;box-shadow:0 10px 30px -10px rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;will-change:transform,opacity,filter;opacity:0;";
     const img = new Image();
     img.src = icon.src;
     img.alt = icon.name;
@@ -140,7 +140,7 @@
     if (handedOff) return;
     handedOff = true;
     window.__hubBootStartAt = HANDOFF_AT;
-    import("./hub-boot.js?v=8");
+    import("./hub-boot.js?v=9");
   };
 
   // dissolve the overlay, revealing the story already running underneath
@@ -228,7 +228,7 @@
     img.src = icon.src;
     img.alt = icon.name;
     img.draggable = false;
-    img.style.cssText = "width:74%;height:74%;border-radius:" + 7 * S + "px;object-fit:contain;";
+    img.style.cssText = "width:100%;height:100%;border-radius:" + 10 * S + "px;object-fit:cover;"; // full-bleed: the icons carry their own rounded backgrounds
     t.appendChild(img);
     overlay.appendChild(t);
     return t;
@@ -239,7 +239,7 @@
     const railSep = document.createElement("div");
     railSep.style.cssText = "position:absolute;left:" + colLeft * S + "px;top:" + 91 * S + "px;width:" + 32 * S + "px;height:2px;border-radius:1px;background:rgba(255,255,255,.16);opacity:0;";
     overlay.appendChild(railSep);
-    const crew = [1, 2, 6, 5, 3, 4, 0].map((idx) => crewTile(ICONS[idx], 40)); // bench order
+    const crew = [0, 1, 2, 6, 5, 3, 4].map((idx) => crewTile(ICONS[idx], 40)); // bench order: Cursor, ChatGPT, Claude, Devin, Hermes, Gemini, Grok
     const plusTile = crewTile(ICONS[0], 40);
     plusTile.innerHTML = "";
     plusTile.style.opacity = "0";
