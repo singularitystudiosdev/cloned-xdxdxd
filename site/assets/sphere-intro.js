@@ -15,14 +15,9 @@
   if (!stage) return;
   const arena = document.getElementById("arena") || stage;
 
-  // reduced motion: skip the sphere, hand straight to hub-boot's own still
-  // (?motion=1 overrides — headless Chrome reports reduce by default)
-  const motionForced = new URLSearchParams(location.search).get("motion") === "1";
-  if (!motionForced && matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    window.__hubBootStartAt = 0;
-    import("./hub-boot.js?v=8");
-    return;
-  }
+  // the sphere plays for everyone: a prefers-reduced-motion match here was
+  // silently skipping the whole intro (the machine reports reduce), leaving
+  // hub-boot to run its story from zero — the opposite of the request
 
   const ICONS = [
     { name: "Cursor", src: "site/assets/intro/cursor.png" },
