@@ -23,10 +23,14 @@
   // silently skipping the whole intro (the machine reports reduce), leaving
   // hub-boot to run its story from zero — the opposite of the request
 
-  // the spinning tiles ARE the rail's app tiles — the same eight apps, the
-  // same markup, the same brand rules (hub-boot.css) — so the sphere and the
-  // sidebar always match: `app` keys the registry mark + data-app ground,
-  // `img` is a full-bleed brand tile exactly as the rail draws it
+  // the spinning tiles: the rail's eight app tiles — same markup, same brand
+  // rules (hub-boot.css), so the sphere and the sidebar match — plus five
+  // popular AI coding IDEs that spin but never land in the rail (user,
+  // 2026-09-09), picked for their purple / blue / green / orange brands and
+  // drawn with their actual artwork. `app` keys the registry mark + data-app
+  // ground; `img` is a full-bleed brand tile; `sym` + `bg`/`ink` is a
+  // registry mark on a sphere-only ground; `logo` + `bg` is a transparent
+  // brand mark set on a ground at the rail's 60% face
   const SPIN = [
     { app: "openai" },
     { app: "claude" },
@@ -36,6 +40,11 @@
     { app: "hermes", name: "Hermes", img: "site/assets/intro/hermes.png" },
     { app: "grok", name: "Grok", img: "site/assets/intro/grok.png" },
     { app: "copilot", name: "GitHub Copilot" },
+    { name: "Kiro", img: "site/assets/intro/kiro.ico" },                                           // purple
+    { name: "VS Code", sym: "vscode", bg: "var(--brand-vscode)", ink: "var(--brand-vscode-ink)" },   // blue
+    { name: "Windsurf", sym: "windsurf", bg: "var(--brand-windsurf)", ink: "var(--brand-windsurf-ink)" }, // green
+    { name: "Replit", logo: "site/assets/intro/replit.png", bg: "var(--surface)" },              // orange
+    { name: "Lovable", logo: "site/assets/intro/lovable.png", bg: "#ffffff" },                   // orange → pink → purple
   ];
   const SPIN_TILES = SPIN.length;
 
@@ -124,17 +133,29 @@
     // full-bleed image exactly as the sidebar draws it
     const t = document.createElement("span");
     t.className = "rail-item" + (a.img ? " bleed" : "");
-    t.dataset.app = a.app;
+    if (a.app) t.dataset.app = a.app;
     t.title = a.name || a.app;
     t.style.cssText = "position:absolute;left:0;top:0;width:" + TILE + "px;height:" + TILE + "px;will-change:transform,opacity,filter;opacity:0;";
+    const HAIRLINE = "inset 0 0 0 1px rgb(255 255 255 / .14)";
     if (a.img) {
       const img = new Image();
       img.src = a.img;
       img.alt = "";
       img.draggable = false;
       t.appendChild(img);
+    } else if (a.logo) {
+      // a transparent brand mark on a ground, at the registry marks' face
+      t.style.background = a.bg;
+      t.style.boxShadow = HAIRLINE;
+      const img = new Image();
+      img.src = a.logo;
+      img.alt = "";
+      img.draggable = false;
+      img.style.cssText = "width:60%;height:60%;object-fit:contain;display:block;";
+      t.appendChild(img);
     } else {
-      t.innerHTML = '<svg><use href="#sb-ic-' + a.app + '"/></svg>';
+      if (a.sym) { t.style.background = a.bg; t.style.color = a.ink; t.style.boxShadow = HAIRLINE; }
+      t.innerHTML = '<svg><use href="#sb-ic-' + (a.sym || a.app) + '"/></svg>';
       const svg = t.querySelector("svg");
       svg.style.width = "31px";
       svg.style.height = "31px";
