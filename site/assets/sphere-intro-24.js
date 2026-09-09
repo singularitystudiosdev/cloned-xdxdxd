@@ -1,7 +1,8 @@
 // sphere-intro: the hero's opening — the sphere-collapse bench's desktop
 // intro (hero-loading-animations.html), adapted to this site's stage:
-//   1. the rail's four app icons (openai, claude, gemini, cursor — the same
-//      brand tiles the real rail carries) pop in on a fibonacci sphere and
+//   1. the agent apps — the rail's four wired vendors plus Devin, Hermes,
+//      Grok, Copilot, Windsurf, Cline, Kiro and Zed, each with its actual
+//      artwork in the rail's tile style — pop in on a fibonacci sphere and
 //      spin up exponentially (0.35 → 21 rad/s), centered in the arena
 //   2. they converge and merge (the bench's 450ms accelerating window) and
 //      the superbot mascot mark flips and grows (fv-flip-icon-grow, exact)
@@ -22,10 +23,25 @@
   // silently skipping the whole intro (the machine reports reduce), leaving
   // hub-boot to run its story from zero — the opposite of the request
 
-  // the spinning tiles ARE the rail's app icons — same registry, same brand
-  // grounds — so what merges is what the frontend later shows
-  const RAIL_APPS = ["openai", "claude", "gemini", "cursor"];
-  const SPIN_TILES = 8; // each vendor twice, spread evenly
+  // the spinning tiles are REAL agent apps in the rail's tile style: the four
+  // the sidebar wires (same registry, same brand grounds) plus the agents
+  // superbot manages — each with its actual artwork: `sym` is the page's own
+  // inline icon registry (#sb-ic-*), `img` a full-bleed brand tile
+  const SPIN = [
+    { app: "openai" },
+    { app: "claude" },
+    { app: "gemini" },
+    { app: "cursor" },
+    { name: "Devin", img: "site/assets/intro/devin.png" },
+    { name: "Hermes", img: "site/assets/intro/hermes.png" },
+    { name: "Grok", img: "site/assets/intro/grok.png" },
+    { name: "GitHub Copilot", sym: "copilot", bg: "var(--brand-copilot)", ink: "var(--brand-copilot-ink)" },
+    { name: "Windsurf", sym: "windsurf", bg: "var(--brand-windsurf)", ink: "var(--brand-windsurf-ink)" },
+    { name: "Cline", sym: "cline", bg: "var(--surface)", ink: "var(--fg)" },
+    { name: "Kiro", sym: "kiro", bg: "var(--surface)", ink: "var(--fg)" },
+    { name: "Zed", sym: "zed", bg: "var(--brand-zed)", ink: "var(--brand-zed-ink)" },
+  ];
+  const SPIN_TILES = SPIN.length;
 
   // fixed coordinate space: 460px choreography, sphere R=175, 54px tiles
   const STAGE = 460, C = STAGE / 2, R = 175, TILE = 54;
@@ -106,17 +122,35 @@
   addEventListener("resize", placeBloom);
 
   const FIB = fibDirs(SPIN_TILES);
-  const tiles = RAIL_APPS.concat(RAIL_APPS).map((app) => {
-    // reuse the rail's own tile: .rail-item + data-app carries the exact brand
-    // ground, ink and hairline the sidebar's icons wear (hub-boot.css)
+  const HAIRLINE = "inset 0 0 0 1px rgb(255 255 255 / .14)";
+  const tiles = SPIN.map((a) => {
+    // every tile is the rail's own .rail-item box (44px design, radius 14):
+    // a wired vendor gets its data-app brand ground from hub-boot.css, a
+    // registry mark sits on its brand ground, a full-bleed brand image fills
+    // the box edge to edge
     const t = document.createElement("span");
     t.className = "rail-item";
-    t.dataset.app = app;
-    t.innerHTML = '<svg><use href="#sb-ic-' + app + '"/></svg>';
-    t.style.cssText = "position:absolute;left:0;top:0;width:" + TILE + "px;height:" + TILE + "px;box-shadow:0 10px 30px -10px rgba(0,0,0,.8);will-change:transform,opacity,filter;opacity:0;";
+    t.title = a.name || a.app;
+    t.style.cssText = "position:absolute;left:0;top:0;width:" + TILE + "px;height:" + TILE + "px;box-shadow:0 10px 30px -10px rgba(0,0,0,.8);will-change:transform,opacity,filter;opacity:0;overflow:hidden;";
+    if (a.app) {
+      t.dataset.app = a.app;
+      t.innerHTML = '<svg><use href="#sb-ic-' + a.app + '"/></svg>';
+    } else if (a.sym) {
+      t.style.background = a.bg;
+      t.style.color = a.ink;
+      t.style.boxShadow += "," + HAIRLINE;
+      t.innerHTML = '<svg><use href="#sb-ic-' + a.sym + '"/></svg>';
+    } else {
+      t.style.background = "#000";
+      const img = new Image();
+      img.src = a.img;
+      img.alt = "";
+      img.draggable = false;
+      img.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;box-shadow:" + HAIRLINE + ";";
+      t.appendChild(img);
+    }
     const svg = t.querySelector("svg");
-    svg.style.width = "31px";
-    svg.style.height = "31px";
+    if (svg) { svg.style.width = "31px"; svg.style.height = "31px"; }
     holder.appendChild(t);
     return t;
   });
