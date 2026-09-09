@@ -125,7 +125,7 @@
 .hub .dot.off { background: var(--line); }
 .hub .act { display: inline-block; padding: 0 7px; border-radius: var(--r-control); background: var(--raised); border: 1px solid var(--line); color: var(--fg); font-size: .91em; line-height: 16px; }
 
-.rail { background: var(--bg); border-right: 1px solid var(--line); align-items: center; padding: 8px 0; gap: 6px; }
+.rail { background: var(--bg); border-right: 1px solid var(--line); align-items: center; padding: 8px 0; gap: 4px; } /* gap 4 (was 6): eight app tiles plus the folder and add tiles fit the stage's fixed-height rail (user, 2026-09-09) */
 /* 44px tiles at radius 14px = the app's 48px/16px at the rail's 64/72 scale
    (rail-item.tsx: the rounded-square server icon, Discord style). The mark
    rides at ~60% of the tile face. */
@@ -172,6 +172,12 @@
 .rail-item[data-app="claude"]   { background: var(--brand-claude);   color: var(--brand-claude-ink); }
 .rail-item[data-app="gemini"]   { background: var(--brand-gemini);   color: var(--brand-gemini-ink); }
 .rail-item[data-app="cursor"]   { background: var(--brand-cursor);   color: var(--brand-cursor-ink);   box-shadow: inset 0 0 0 1px rgb(255 255 255 / .14); }
+.rail-item[data-app="copilot"]  { background: var(--brand-copilot);  color: var(--brand-copilot-ink);  box-shadow: inset 0 0 0 1px rgb(255 255 255 / .14); }
+/* full-bleed brand tiles (Devin, Hermes, Grok ship their own ground): the
+   image fills the box and carries the radius and hairline itself — the tile
+   stays overflow-visible so the status dot still hangs off its corner */
+.rail-item.bleed { background: #000; box-shadow: inset 0 0 0 1px rgb(255 255 255 / .14); }
+.rail-item.bleed img { width: 100%; height: 100%; display: block; object-fit: cover; border-radius: inherit; box-shadow: inset 0 0 0 1px rgb(255 255 255 / .14); }
 /* the Utilities folder: a RAISED tile holding four 10px glyphs in a 2x2 grid,
    with the green count dot bottom-right */
 .rail-item.folder { background: var(--surface); display: grid; grid-template-columns: 10px 10px; grid-template-rows: 10px 10px; gap: 3px; place-content: center; }

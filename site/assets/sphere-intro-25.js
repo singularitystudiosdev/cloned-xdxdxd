@@ -23,23 +23,19 @@
   // silently skipping the whole intro (the machine reports reduce), leaving
   // hub-boot to run its story from zero — the opposite of the request
 
-  // the spinning tiles are REAL agent apps in the rail's tile style: the four
-  // the sidebar wires (same registry, same brand grounds) plus the agents
-  // superbot manages — each with its actual artwork: `sym` is the page's own
-  // inline icon registry (#sb-ic-*), `img` a full-bleed brand tile
+  // the spinning tiles ARE the rail's app tiles — the same eight apps, the
+  // same markup, the same brand rules (hub-boot.css) — so the sphere and the
+  // sidebar always match: `app` keys the registry mark + data-app ground,
+  // `img` is a full-bleed brand tile exactly as the rail draws it
   const SPIN = [
     { app: "openai" },
     { app: "claude" },
     { app: "gemini" },
     { app: "cursor" },
-    { name: "Devin", img: "site/assets/intro/devin.png" },
-    { name: "Hermes", img: "site/assets/intro/hermes.png" },
-    { name: "Grok", img: "site/assets/intro/grok.png" },
-    { name: "GitHub Copilot", sym: "copilot", bg: "var(--brand-copilot)", ink: "var(--brand-copilot-ink)" },
-    { name: "Windsurf", sym: "windsurf", bg: "var(--brand-windsurf)", ink: "var(--brand-windsurf-ink)" },
-    { name: "Cline", sym: "cline", bg: "var(--surface)", ink: "var(--fg)" },
-    { name: "Kiro", sym: "kiro", bg: "var(--surface)", ink: "var(--fg)" },
-    { name: "Zed", sym: "zed", bg: "var(--brand-zed)", ink: "var(--brand-zed-ink)" },
+    { app: "devin", name: "Devin", img: "site/assets/intro/devin.png" },
+    { app: "hermes", name: "Hermes", img: "site/assets/intro/hermes.png" },
+    { app: "grok", name: "Grok", img: "site/assets/intro/grok.png" },
+    { app: "copilot", name: "GitHub Copilot" },
   ];
   const SPIN_TILES = SPIN.length;
 
@@ -122,35 +118,27 @@
   addEventListener("resize", placeBloom);
 
   const FIB = fibDirs(SPIN_TILES);
-  const HAIRLINE = "inset 0 0 0 1px rgb(255 255 255 / .14)";
   const tiles = SPIN.map((a) => {
-    // every tile is the rail's own .rail-item box (44px design, radius 14):
-    // a wired vendor gets its data-app brand ground from hub-boot.css, a
-    // registry mark sits on its brand ground, a full-bleed brand image fills
-    // the box edge to edge
+    // the rail's own markup, verbatim: .rail-item[data-app] gets its brand
+    // ground, ink and hairline from hub-boot.css; .bleed carries the
+    // full-bleed image exactly as the sidebar draws it
     const t = document.createElement("span");
-    t.className = "rail-item";
+    t.className = "rail-item" + (a.img ? " bleed" : "");
+    t.dataset.app = a.app;
     t.title = a.name || a.app;
-    t.style.cssText = "position:absolute;left:0;top:0;width:" + TILE + "px;height:" + TILE + "px;box-shadow:0 10px 30px -10px rgba(0,0,0,.8);will-change:transform,opacity,filter;opacity:0;overflow:hidden;";
-    if (a.app) {
-      t.dataset.app = a.app;
-      t.innerHTML = '<svg><use href="#sb-ic-' + a.app + '"/></svg>';
-    } else if (a.sym) {
-      t.style.background = a.bg;
-      t.style.color = a.ink;
-      t.style.boxShadow += "," + HAIRLINE;
-      t.innerHTML = '<svg><use href="#sb-ic-' + a.sym + '"/></svg>';
-    } else {
-      t.style.background = "#000";
+    t.style.cssText = "position:absolute;left:0;top:0;width:" + TILE + "px;height:" + TILE + "px;will-change:transform,opacity,filter;opacity:0;";
+    if (a.img) {
       const img = new Image();
       img.src = a.img;
       img.alt = "";
       img.draggable = false;
-      img.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;box-shadow:" + HAIRLINE + ";";
       t.appendChild(img);
+    } else {
+      t.innerHTML = '<svg><use href="#sb-ic-' + a.app + '"/></svg>';
+      const svg = t.querySelector("svg");
+      svg.style.width = "31px";
+      svg.style.height = "31px";
     }
-    const svg = t.querySelector("svg");
-    if (svg) { svg.style.width = "31px"; svg.style.height = "31px"; }
     holder.appendChild(t);
     return t;
   });
