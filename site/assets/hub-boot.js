@@ -805,8 +805,12 @@ if (reduced) {
   new IntersectionObserver(([e]) => { visible = e.isIntersecting; setPaused(!visible || document.hidden); }, { threshold: 0.15 }).observe(stage);
   document.addEventListener('visibilitychange', () => setPaused(!visible || document.hidden));
   // a sphere-intro handoff starts the story mid-way: window.__hubBootStartAt
-  // (seconds, story time) shifts t0 so render() opens past the boot log
-  t0 = performance.now() - (Math.max(0, parseFloat(window.__hubBootStartAt) || 0)) * 1000 * V.pace;
+  // (seconds, story time) shifts t0 so render() opens at that mark, and every
+  // event before it is pre-marked fired — the transcript starts empty and the
+  // story genuinely begins there (no dumped history, no item spawns)
+  const START_AT = Math.max(0, parseFloat(window.__hubBootStartAt) || 0);
+  t0 = performance.now() - START_AT * 1000 * V.pace;
+  if (START_AT > 0) for (let i = 0; i < EVENTS.length; i++) if (EVENTS[i].at < START_AT) fired.add(i);
   requestAnimationFrame(tick);
 }
 replay.addEventListener('click', restart);
