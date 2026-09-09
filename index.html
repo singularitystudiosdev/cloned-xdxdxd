@@ -409,9 +409,12 @@
 
   if (motionOK) dockEl.classList.add('live');
 
-  // the boot-sequence hero: hub-boot.js self-boots the 32s story in #stage
-  // (its own clock, offscreen pause, reduced-motion still, replay button).
-  import('./site/assets/hub-boot.js');
+  // the hero intro: sphere-intro.js plays the 5s story in #stage — app icons
+  // pop in on a fibonacci sphere, spin up, merge into the superbot icon, the
+  // icon flips and grows, then expands and dissolves into the settled stage
+  // (curves ported from the sphere-collapse bench). hub-boot.js's 32s boot
+  // story is replaced; it stays on disk, unreferenced.
+  import('./site/assets/sphere-intro.js');
 </script>
 </body>
 </html>
