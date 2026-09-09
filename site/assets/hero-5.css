@@ -11,8 +11,9 @@
 /* ---- hero grid: one column by default; the split variant is a two-column
    grid on wide screens (copy + install left, stage right, log across) ---- */
 .hero {
+  --hero-top: 0px; --hero-below: -9px; --hero-stage-w: 964px; /* the owner's editor settings (2026-09-09): lockup flush to the nav, the stage pulled 9px up under it, 964px wide */
   max-width: var(--container); margin: 0 auto;
-  padding: var(--hero-top, var(--sp-10)) var(--gutter-r) 0 var(--gutter-l); /* --hero-top: the editor's "space above" (hero-edit-3.js) */
+  padding: 0 var(--gutter-r) 0 var(--gutter-l); /* the top space lives on .hero-copy's margin (--hero-top) so the editor can take it NEGATIVE — padding clamps at 0 */
   display: grid; gap: var(--sp-6); justify-items: center; text-align: center;
   position: relative; z-index: 1;
 }
@@ -22,7 +23,7 @@
 /* the width caps come from the token sheet, not one-off px: the copy column
    and the stage/desk share --content, the prose caps share --measure (62ch),
    so the page reads on one width rhythm */
-.hero-copy { max-width: var(--content); margin-bottom: var(--hero-below, 0px); } /* --hero-below: the editor's "space to the animation", on top of the hero's grid gap; negative pulls the stage up */
+.hero-copy { max-width: var(--content); margin-top: var(--hero-top, var(--sp-10)); margin-bottom: var(--hero-below, 0px); } /* --hero-top: the editor's "space above" (was the hero's padding; a margin can go negative and pull the lockup up under the nav). --hero-below: "space to the animation", on top of the hero's grid gap; negative pulls the stage up. Note the mark's SVG box carries ~21% of empty space above the visible face, so "0" still shows a little air */
 /* the perch anchor beside the headline: an empty box the hero's `perch` cuts
    (hub-boot.js CUTS) move the mascot into once the terminal column collapses.
    Empty and inert for every other cut, and gone below the tablet cut where the
@@ -42,7 +43,9 @@
    reference gives it. The tunables are custom properties so the editor
    (site/assets/hero-edit-2.js, loaded on ?edit) can drive them live and copy
    the values back here. */
-.sb-lockup { --hero-scale: 1; --hero-mark: 6.4em; --hero-h1-scale: 1; --hero-tag-scale: 1; --hero-gap: 12px; --hero-h1-dx: 0px; --hero-h1-dy: 0px; } /* --hero-scale: the editor's "lockup size" — one multiplier on the headline token that the mark, the wordmark and the tagline all size from, so the whole lockup grows as one */
+/* the SHIPPED values are the owner's own editor settings (2026-09-09): a
+   compact lockup (.3 of the token) with the words scaled back up inside it */
+.sb-lockup { --hero-scale: .3; --hero-mark: 6.4em; --hero-h1-scale: 1.75; --hero-tag-scale: 2.38; --hero-gap: 12px; --hero-h1-dx: 0px; --hero-h1-dy: 0px; } /* --hero-scale: the editor's "lockup size" — one multiplier on the headline token that the mark, the wordmark and the tagline all size from, so the whole lockup grows as one */
 .sb-lockup { display: flex; align-items: center; justify-content: center; gap: var(--hero-gap); }
 .sb-words { display: flex; flex-direction: column; align-items: flex-start; text-align: left; gap: .32em; font-size: calc(var(--fs-h1) * var(--hero-scale, 1)); transform: translate(var(--hero-h1-dx), var(--hero-h1-dy)); }
 .sb-lockup .sb-words h1 { margin: 0; font-size: calc(1.66em * var(--hero-h1-scale)); line-height: 1; letter-spacing: -.025em; font-weight: 800; } /* .sb-lockup prefix out-weighs `.hero h1` below, which would otherwise reset the size */

@@ -5,7 +5,7 @@
 //   layout: the whole lockup's size, the mark's size, the space above the
 //           lockup, the space between it and the animation, and the
 //           animation's width
-// Values write straight to custom properties (hero-4.css) so what you see is
+// Values write straight to custom properties (hero-5.css) so what you see is
 // what ships; "Copy CSS" puts the exact override lines + the .sb-words markup
 // on the clipboard to paste back. Nothing here loads without ?edit.
 (() => {
@@ -17,28 +17,32 @@
   const desk = hero && hero.querySelector(".desk");
   if (!hero || !lockup || !words || !h1 || !tag || !desk) return;
 
-  const KEY = "hero-tune-3";
+  const KEY = "hero-tune-4";
   // the shipped defaults are read off the stylesheet so Reset means "as shipped"
   const px = (el, prop) => parseFloat(getComputedStyle(el)[prop]) || 0;
+  const tok = (el, name, fallback) => { const s = getComputedStyle(el).getPropertyValue(name).trim(); const n = parseFloat(s); return Number.isFinite(n) ? n : fallback; };
   const DEFAULTS = {
     text: h1.textContent, tag: tag.textContent,
-    h1: 1, tagScale: 1, gap: 12, dx: 0, dy: 0,
-    scale: 1, mark: 6.4, top: Math.round(px(hero, "paddingTop")), below: 0, stage: Math.round(px(desk, "maxWidth") || desk.getBoundingClientRect().width),
+    h1: tok(lockup, "--hero-h1-scale", 1), tagScale: tok(lockup, "--hero-tag-scale", 1), gap: tok(lockup, "--hero-gap", 12), dx: tok(lockup, "--hero-h1-dx", 0), dy: tok(lockup, "--hero-h1-dy", 0),
+    scale: tok(lockup, "--hero-scale", 1), mark: tok(lockup, "--hero-mark", 6.4), top: Math.round(px(hero.querySelector(".hero-copy"), "marginTop")), below: tok(hero, "--hero-below", 0), stage: Math.round(px(desk, "maxWidth") || desk.getBoundingClientRect().width),
   };
+  // wide ranges, and every spacing control goes NEGATIVE (user, 2026-09-09):
+  // the mark's SVG box has ~21% of air above the visible face, so pulling
+  // "space above" below zero is how the icon reaches the nav
   const SECTIONS = [
     { title: "words", fields: [
-      { k: "h1", label: "wordmark size", min: 0.4, max: 2, step: 0.01, unit: "×" },
-      { k: "tagScale", label: "tagline size", min: 0.4, max: 2.5, step: 0.01, unit: "×" },
-      { k: "gap", label: "gap to mark", min: 0, max: 96, step: 1, unit: "px" },
-      { k: "dx", label: "words x", min: -300, max: 300, step: 1, unit: "px" },
-      { k: "dy", label: "words y", min: -200, max: 200, step: 1, unit: "px" },
+      { k: "h1", label: "wordmark size", min: 0.2, max: 3, step: 0.01, unit: "×" },
+      { k: "tagScale", label: "tagline size", min: 0.2, max: 4, step: 0.01, unit: "×" },
+      { k: "gap", label: "gap to mark", min: -160, max: 240, step: 1, unit: "px" },
+      { k: "dx", label: "words x", min: -600, max: 600, step: 1, unit: "px" },
+      { k: "dy", label: "words y", min: -400, max: 400, step: 1, unit: "px" },
     ] },
     { title: "layout", fields: [
-      { k: "scale", label: "lockup size", min: 0.3, max: 2, step: 0.01, unit: "×" },
-      { k: "mark", label: "mark size", min: 2, max: 10, step: 0.05, unit: "em" },
-      { k: "top", label: "space above", min: 0, max: 240, step: 1, unit: "px" },
-      { k: "below", label: "space to animation", min: -120, max: 240, step: 1, unit: "px" },
-      { k: "stage", label: "animation width", min: 480, max: 1600, step: 4, unit: "px" },
+      { k: "scale", label: "lockup size", min: 0.2, max: 3, step: 0.01, unit: "×" },
+      { k: "mark", label: "mark size", min: 1, max: 14, step: 0.05, unit: "em" },
+      { k: "top", label: "space above", min: -300, max: 300, step: 1, unit: "px" },
+      { k: "below", label: "space to animation", min: -300, max: 300, step: 1, unit: "px" },
+      { k: "stage", label: "animation width", min: 320, max: 2000, step: 4, unit: "px" },
     ] },
   ];
   const FIELDS = SECTIONS.flatMap((s) => s.fields);
@@ -103,7 +107,7 @@
   panel.querySelector("#he-reset").addEventListener("click", () => { v = { ...DEFAULTS }; tx.value = v.text; tg.value = v.tag; apply(); save(); msg("reset to the shipped values"); });
   panel.querySelector("#he-copy").addEventListener("click", async () => {
     const s = cssBlock();
-    try { await navigator.clipboard.writeText(s); msg("copied — paste the two CSS lines into hero-4.css and the .sb-words block into index.html"); }
+    try { await navigator.clipboard.writeText(s); msg("copied — paste the two CSS lines into hero-5.css and the .sb-words block into index.html"); }
     catch (e) { console.error("[hero-edit] clipboard refused:", e); window.prompt("copy this:", s); }
   });
   const msg = (t) => { panel.querySelector("#he-msg").textContent = t; };
