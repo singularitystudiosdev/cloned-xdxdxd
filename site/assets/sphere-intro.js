@@ -4,11 +4,12 @@
 //      exponentially (0.35 → 21 rad/s), dead center in the arena
 //   2. they converge and merge (the bench's 450ms accelerating window) and
 //      the superbot mascot mark flips and grows (fv-flip-icon-grow, exact)
-//   3. the mark glides LEFT into the real frontend, landing on the hub's own
-//      superbot slot — no floating overlay rail
-//   4. the REAL frontend: the hub surface appears, its app icons drop down
-//      one by one, then the sidebar and chat lane extend into view — the full
-//      frontend. hub-boot's story (chips, sorting, transcript) is unused.
+//   3. the REAL frontend's rail appears and its app icons drop down one by
+//      one (the mark holds center as the rail's superbot stand-in)
+//   4. the mark glides LEFT directly into that sidebar, landing on the hub's
+//      own superbot tile, then the sidebar, chat lane and panel extend into
+//      view — the full frontend. hub-boot's story (chips, sorting,
+//      transcript) is unused.
 // No text dropdowns, no overlapping layers: one beat at a time.
 (() => {
   const stage = document.getElementById("stage");
@@ -191,7 +192,7 @@
     flip.finished.then(() => {
       try { flip.commitStyles(); } catch (e) {}
       flip.cancel();
-      moveLeft();
+      showFrontend();
     }).catch((e) => {
       if (!e || e.name !== "AbortError") console.error("[sphere-intro] flip failed:", e);
     });
@@ -203,9 +204,9 @@
     });
   const px = (v) => v * S;
 
-  // beat 3 — the mark glides LEFT into the real frontend's rail, landing
-  // dead on the hub's superbot slot
-  const moveLeft = () => {
+  // beat 4a — the mark glides LEFT directly into the sidebar, landing dead on
+  // the hub's superbot slot, then crossfades into the real tile
+  const moveLeft = () => new Promise((resolve) => {
     const ov = overlay.getBoundingClientRect();
     const sb = document.querySelector("#hub .rail-item.sb");
     let dx = px(34) - acx(), dy = px(63) - acy();
@@ -218,37 +219,45 @@
       { transform: "scale(1)" },
       { transform: "translate(" + dx + "px," + dy + "px) scale(" + px(44) / (MARK * S) + ")" },
     ], { duration: 560, fill: "forwards", easing: "cubic-bezier(.3,.7,.2,1)" });
-    move.finished.then(() => showFrontend()).catch(() => showFrontend());
-  };
+    const land = () => {
+      // the mark becomes the rail's own superbot tile: commit the landed
+      // transform inline (a finished fill:forwards animation's effect can be
+      // garbage-collected), cancel, then crossfade
+      try { move.commitStyles(); } catch (e) {}
+      try { move.cancel(); } catch (e) {}
+      if (sb) sb.style.opacity = "1";
+      bloom.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 240, fill: "forwards" });
+      resolve();
+    };
+    move.finished.then(land).catch(land);
+  });
 
-  // beat 4 — the real frontend: the hub surface appears, its app icons drop
-  // down one by one, then the full frontend extends into view
-  const showFrontend = () => {
+  // beat 4b — the real frontend extends: sidebar, chat lane and panel come
+  // into view after the mark has landed in the sidebar
+  const showFrontend = async () => {
     const hub = document.getElementById("hub");
     if (!hub) { dissolve(); return; }
-    const sequence = async () => {
-      // the mark crossfades into the hub's own superbot tile
-      const sb = hub.querySelector(".rail-item.sb");
-      if (sb) sb.style.opacity = "1";
-      bloom.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, fill: "forwards" });
-      hub.style.opacity = "1";
-      await new Promise((r) => setTimeout(r, 180));
-      // the app icons drop down beneath the mark, one at a time
-      const items = [...hub.querySelectorAll(".rail-item:not(.sb)")];
-      await Promise.all(items.map((el, i) => anim(el, [
-        { transform: "translateY(" + -10 * S + "px) scale(0.3)", opacity: 0 },
-        { transform: "translateY(0) scale(1)", opacity: 1 },
-      ], { duration: 480, delay: 120 + i * 90, easing: "cubic-bezier(.34,1.56,.64,1)", fill: "forwards" })));
-      // the frontend extends: sidebar and chat lane come into view
-      const rest = [...hub.querySelectorAll(".inner")].filter((el) => !el.classList.contains("rail"));
-      await Promise.all([
-        ...rest.map((el) => anim(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 380, fill: "forwards", easing: "ease-out" })),
-        ...[...hub.children].filter((el) => !el.classList.contains("rail") && !el.classList.contains("inner")).map((el) => anim(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 380, fill: "forwards", easing: "ease-out" })),
-      ]);
-      handoff();
-      dissolve();
-    };
-    sequence();
+    // raise the hub window AND the rail container — the rail carries .inner
+    // too, so the stylesheet holds the whole column at opacity 0; without
+    // this the icons dropped into it (and the mark's landing slot) never show
+    hub.style.opacity = "1";
+    const rail = hub.querySelector(".rail");
+    if (rail) rail.style.opacity = "1";
+    await new Promise((r) => setTimeout(r, 140));
+    // the app icons drop down into the real rail, one at a time — the mark
+    // holds center as the rail's superbot stand-in
+    const items = [...hub.querySelectorAll(".rail-item:not(.sb)")];
+    await Promise.all(items.map((el, i) => anim(el, [
+      { transform: "translateY(" + -34 * S + "px)", opacity: 0 },
+      { transform: "translateY(0)", opacity: 1 },
+    ], { duration: 520, delay: 100 + i * 95, easing: "cubic-bezier(.34,1.56,.64,1)", fill: "forwards" })));
+    // the mark glides left into that sidebar, landing on the superbot tile
+    await moveLeft();
+    // the frontend extends: the sidebar, chat lane and panel fade into view
+    const rest = [...hub.querySelectorAll(".inner")].filter((el) => !el.classList.contains("rail"));
+    await Promise.all(rest.map((el) => anim(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 380, fill: "forwards", easing: "ease-out" })));
+    handoff();
+    dissolve();
   };
 
   raf = requestAnimationFrame(frame);
