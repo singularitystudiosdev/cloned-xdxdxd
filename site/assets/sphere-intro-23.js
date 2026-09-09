@@ -217,25 +217,35 @@
 
     // the hub is live from here, but invisible: window and rail grounds are
     // transparent until the glide, the superbot slot waits for the mark, and
-    // the selection pill waits for the sidebar
-    hub.style.opacity = "1";
+    // the selection pill waits for the sidebar. The stylesheet gives .hub a
+    // transition list (background-color, border-color…) that would turn
+    // these instant changes into a visible fade — a one-frame flash of the
+    // window ground — so transitions are off while the stage is set
+    hub.style.transition = "none";
+    rail.style.transition = "none";
     hub.style.background = "transparent";
     hub.style.borderColor = "transparent";
-    rail.style.opacity = "1";
+    hub.style.boxShadow = "none";
     rail.style.background = "transparent";
     rail.style.borderRightColor = "transparent";
     sb.classList.remove("sel");
+    hub.style.opacity = "1";
+    rail.style.opacity = "1";
 
-    // measure the real rail at rest — the landing geometry
+    // measure the real rail at rest — the landing geometry. Rects come back
+    // in SCREEN px, but transforms are applied in the stage's LOCAL px, and
+    // an ancestor scales the stage (44px tiles render at 55px): Z converts
+    // one to the other, or the tile lands 1.25× too big and 13px off-center
     const ovR = overlay.getBoundingClientRect();
     const sbR = sb.getBoundingClientRect();
+    const Z = sbR.width / (parseFloat(getComputedStyle(sb).width) || sbR.width) || 1;
     const items = [...rail.children].filter((el) => el !== sb);
     const lastR = items.length ? items[items.length - 1].getBoundingClientRect() : sbR;
-    const span = (lastR.top + lastR.height / 2) - (sbR.top + sbR.height / 2);
-    const sbFx = sbR.left + sbR.width / 2 - ovR.left; // slot center, overlay px
-    const sbFy = sbR.top + sbR.height / 2 - ovR.top;
+    const span = ((lastR.top + lastR.height / 2) - (sbR.top + sbR.height / 2)) / Z;
+    const sbFx = (sbR.left + sbR.width / 2 - ovR.left) / Z; // slot center, overlay px
+    const sbFy = (sbR.top + sbR.height / 2 - ovR.top) / Z;
     const homeY = acy() - span / 2; // the column, centered, superbot on top
-    const k = sbR.width / (MARK * S);
+    const k = (sbR.width / Z) / (MARK * S);
 
     // stand the real rail in mid-stage: its superbot slot under the mark;
     // every child waits hidden (the dividers have no hidden state of their
@@ -286,6 +296,7 @@
     bloom.remove();
     hub.style.transition = "";
     rail.style.transition = "";
+    hub.style.boxShadow = "";
     // the frontend extends: the sidebar, chat lane and panel fade into view,
     // and the selection pill takes its place beside the tile
     sb.classList.add("sel");
