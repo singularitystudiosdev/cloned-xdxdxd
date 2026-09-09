@@ -154,7 +154,7 @@
 /* the pill marks the SELECTED client, and the `tabs` cut moves it, so it hangs
    off a class the script sets rather than being welded to .sb (which merely
    starts with it). */
-.rail-item.sel::before { content: ""; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 26px; border-radius: 0 999px 999px 0; background: var(--fg); }
+.rail-item.sel::before { content: ""; position: absolute; left: -10px; top: 50%; transform: translateY(-50%); width: 3px; height: 26px; border-radius: 0 999px 999px 0; background: var(--fg); } /* in the rail GUTTER, flush with the rail's edge, not on the tile face (user, 2026-09-09): the rail column is 64px and the tile 44px, so the gutter is 10px */
 /* a selected VENDOR tile keeps its brand ground: the app never repaints a
    client's own icon when it is the one open (Rail.tsx), the left pill alone
    marks selection — the old accent wash fought each brand pair */
