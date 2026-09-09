@@ -804,7 +804,9 @@ if (reduced) {
   reset();
   new IntersectionObserver(([e]) => { visible = e.isIntersecting; setPaused(!visible || document.hidden); }, { threshold: 0.15 }).observe(stage);
   document.addEventListener('visibilitychange', () => setPaused(!visible || document.hidden));
-  t0 = performance.now();
+  // a sphere-intro handoff starts the story mid-way: window.__hubBootStartAt
+  // (seconds, story time) shifts t0 so render() opens past the boot log
+  t0 = performance.now() - (Math.max(0, parseFloat(window.__hubBootStartAt) || 0)) * 1000 * V.pace;
   requestAnimationFrame(tick);
 }
 replay.addEventListener('click', restart);

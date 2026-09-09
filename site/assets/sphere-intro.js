@@ -1,15 +1,22 @@
-// sphere-intro: the hero intro. 17 app icons pop in one at a time on a
-// fibonacci sphere, spin up exponentially, converge and merge into the
-// superbot app icon, the icon flips and grows (the bench's fv-flip-icon-grow
-// curve, exact), then it expands and dissolves — the extension — handing the
-// stage back to its settled hub UI. Curves ported from the sphere-collapse
-// bench (hero-loading-animations.html): the same pop clock, the same
-// exponential spin-up (0.35 → 21 rad/s), the same 450ms accelerating merge,
-// the same 920ms flip+grow. Replaces hub-boot.js (kept on disk, unreferenced).
+// sphere-intro: the hero's new OPENING segment. 17 app icons pop in one at a
+// time on a fibonacci sphere, spin up exponentially, converge and merge into
+// the superbot mascot mark, the mark flips and grows (the bench's
+// fv-flip-icon-grow curve, exact), then it expands and dissolves — the
+// extension — handing the stage to hub-boot.js, which picks the 32s story up
+// at its 2.9s mark (face just formed) with the boot-log opening replaced.
+// Curves ported from the sphere-collapse bench (hero-loading-animations.html):
+// the same pop clock, the same exponential spin-up (0.35 → 21 rad/s), the same
+// 450ms accelerating merge, the same 920ms flip+grow.
 (() => {
   const stage = document.getElementById("stage");
   if (!stage) return;
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return; // static stage stays
+
+  // reduced motion: skip the sphere, hand straight to hub-boot's own still
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    window.__hubBootStartAt = 0;
+    import("./hub-boot.js");
+    return;
+  }
 
   const ICONS = [
     { name: "Cursor", src: "site/assets/intro/cursor.png" },
@@ -32,7 +39,6 @@
   ];
 
   const STAGE = 460, C = STAGE / 2, R = 175, TILE = 54;
-  const TAU = Math.PI * 2;
   const lerp = (a, b, t) => a + (b - a) * t;
   const clamp01 = (t) => Math.min(1, Math.max(0, t));
   const rotY3 = (v, a) => ({ x: v.x * Math.cos(a) + v.z * Math.sin(a), y: v.y, z: -v.x * Math.sin(a) + v.z * Math.cos(a) });
@@ -55,6 +61,10 @@
   };
   const easeOutBack = (t) => { const c = 1.70158; const x = clamp01(t); return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
 
+  // the hub-boot story picks up here once the sphere hands off (its face is
+  // just formed; the boot-log opening this intro replaces sat before it)
+  const HANDOFF_AT = 2.9;
+
   // overlay: fills the stage, transparent — the stage card shows through
   const overlay = document.createElement("div");
   overlay.className = "sphere-intro";
@@ -74,15 +84,19 @@
   fit();
   addEventListener("resize", fit);
 
-  // the merge target — appears instantly at the merge, then flips + grows
+  // the merge target — the site's own mascot mark on the dark tile, with the
+  // same teal/magenta chromatic fringe the hero's big mascot carries
   const bloom = document.createElement("div");
   bloom.style.cssText = "position:absolute;left:50%;top:50%;width:250px;height:250px;margin:-125px 0 0 -125px;z-index:5;opacity:0;will-change:transform,filter;";
-  const bloomImg = new Image();
-  bloomImg.src = "site/assets/intro/superbot-bloom-m13.png";
-  bloomImg.alt = "";
-  bloomImg.draggable = false;
-  bloomImg.style.cssText = "width:100%;height:100%;display:block;border-radius:56px;box-shadow:0 18px 70px -18px rgba(0,0,0,.85);";
-  bloom.appendChild(bloomImg);
+  const bloomTile = document.createElement("div");
+  bloomTile.style.cssText = "position:absolute;inset:0;border-radius:56px;background:#101014;box-shadow:0 0 0 1px rgba(255,255,255,.07),0 18px 70px -18px rgba(0,0,0,.85);";
+  const mark = new Image();
+  mark.src = "site/assets/brand/mark-clean.svg";
+  mark.alt = "";
+  mark.draggable = false;
+  mark.style.cssText = "position:absolute;inset:14%;width:72%;height:72%;filter:drop-shadow(-2px 0 0 #34e0c8) drop-shadow(2px 0 0 #e14fd2);";
+  bloom.appendChild(bloomTile);
+  bloom.appendChild(mark);
   overlay.appendChild(bloom);
 
   const FIB = fibDirs(ICONS.length);
@@ -102,6 +116,19 @@
   const place3 = (el, x, y, z, s) => {
     const size = TILE * s;
     el.style.transform = "translate3d(" + (C - size / 2 + x) + "px," + (C - size / 2 + y) + "px," + z + "px) scale(" + s + ")";
+  };
+
+  // the handoff: hand the stage to hub-boot mid-story, then dissolve. Idempotent —
+  // the watchdog calls it too.
+  let handedOff = false;
+  const handoff = () => {
+    if (handedOff) return;
+    handedOff = true;
+    window.__hubBootStartAt = HANDOFF_AT;
+    import("./hub-boot.js");
+    overlay.style.transition = "opacity 300ms ease";
+    overlay.style.opacity = "0";
+    setTimeout(() => overlay.remove(), 320);
   };
 
   let ang = 0, last = null, phase = "run", raf = 0;
@@ -165,30 +192,20 @@
     });
   };
 
-  // the extension: the icon expands outward and the overlay dissolves,
-  // revealing the settled stage beneath (the demo's "expands into the chat")
+  // the extension: the mark expands outward and the overlay dissolves, handing
+  // the stage to hub-boot's story (the demo's "expands into the chat")
   const extension = () => {
     const grow = bloom.animate([
       { transform: "scale(1)", opacity: 1, easing: "cubic-bezier(.3,.7,.2,1)" },
       { transform: "scale(2.6)", opacity: 0 },
     ], { duration: 620, fill: "forwards" });
-    const done = () => {
-      overlay.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: "forwards" })
-        .finished.then(() => overlay.remove()).catch(() => overlay.remove());
-    };
-    grow.finished.then(done).catch(done);
+    grow.finished.then(handoff).catch(handoff);
   };
 
   raf = requestAnimationFrame(frame);
 
   // watchdog: if the finisher chain ever stalls (WAAPI promises can sit
-  // unresolved under throttling), force the reveal so the stage is never
+  // unresolved under throttling), force the handoff so the stage is never
   // left covered
-  setTimeout(() => {
-    if (overlay.isConnected) {
-      overlay.style.transition = "opacity 300ms ease";
-      overlay.style.opacity = "0";
-      setTimeout(() => overlay.remove(), 320);
-    }
-  }, MERGE_T + 920 + 620 + 500);
+  setTimeout(handoff, startAt + MERGE_T + 920 + 620 + 500);
 })();
