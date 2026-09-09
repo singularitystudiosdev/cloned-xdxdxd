@@ -5,13 +5,13 @@
 //      spin up exponentially (0.35 → 21 rad/s), centered in the arena
 //   2. they converge and merge (the bench's 450ms accelerating window) and
 //      the superbot mascot mark flips and grows (fv-flip-icon-grow, exact)
-//   3. the hub window appears SHIFTED RIGHT so its rail sits under the mark,
-//      and the real app icons drop down one by one beneath it
-//   4. then ALL of it moves left: the terminal's transcript column collapses,
-//      the whole hub glides into its full-width position, and the mark rides
-//      its rail slot, landing as the sidebar's superbot tile — the sidebar,
-//      chat lane and panel then extend into view. hub-boot's story (chips,
-//      sorting, transcript) is unused.
+//   3. the mark shrinks to the rail's tile size and the OTHER app icons drop
+//      down from it, right there in the middle — a full replica of the rail
+//      assembling beneath the mark (the bench's shrink-top + crew bloom)
+//   4. the whole lockup (mark + dropped apps) glides LEFT as one, lands
+//      exactly on the real rail, crossfades into it, and the sidebar, chat
+//      lane and panel extend into view. hub-boot's story (chips, sorting,
+//      transcript) is unused.
 // No text dropdowns, no overlapping layers: one beat at a time.
 (() => {
   const stage = document.getElementById("stage");
@@ -67,10 +67,8 @@
   overlay.style.cssText = "position:absolute;inset:0;overflow:hidden;z-index:30;pointer-events:none;";
   body.appendChild(overlay);
 
-  // the choreography's center in overlay px — the ARENA's center (the right
-  // column, where the hub lives while the transcript margin is still open).
-  // Read live: once the margin collapses at the slide, offsetLeft is 0, so
-  // nothing after the collapse may call this for placement
+  // the choreography's center in overlay px — the ARENA's center, which since
+  // the margin collapse is the stage's center
   const acx = () => arena.offsetLeft + arena.clientWidth / 2;
   const acy = () => arena.offsetTop + arena.clientHeight / 2;
   let S = 1;
@@ -110,7 +108,7 @@
   addEventListener("resize", placeBloom);
 
   const FIB = fibDirs(SPIN_TILES);
-  const tiles = RAIL_APPS.concat(RAIL_APPS).map((app, i) => {
+  const tiles = RAIL_APPS.concat(RAIL_APPS).map((app) => {
     // reuse the rail's own tile: .rail-item + data-app carries the exact brand
     // ground, ink and hairline the sidebar's icons wear (hub-boot.css)
     const t = document.createElement("span");
@@ -197,63 +195,91 @@
       if (!e || e.name !== "AbortError") console.error("[sphere-intro] step failed:", e);
     });
   const px = (v) => v * S;
+  // commit a finished fill:forwards animation to inline style and drop it —
+  // a finished filling animation's effect can be garbage-collected otherwise
+  const settle = (el) => {
+    const a = el.getAnimations().pop();
+    if (!a) return;
+    try { a.commitStyles(); } catch (e) {}
+    try { a.cancel(); } catch (e) {}
+  };
 
-  // beats 3 + 4 — the real frontend: the hub appears SHIFTED RIGHT so its
-  // rail sits under the mark, the app icons drop down one by one, then the
-  // whole assembly glides LEFT into its full-width position while the mark
-  // rides its rail slot, landing as the sidebar's superbot tile; the rest of
-  // the frontend then extends into view
+  // beats 3 + 4 — the rail assembles UNDER the mark, in the middle of the
+  // stage, then the whole lockup glides left and lands on the real rail
   const showFrontend = async () => {
     const hub = document.getElementById("hub");
     if (!hub) { dissolve(); return; }
-    // raise the hub window AND the rail container — the rail carries .inner
-    // too, so the stylesheet holds the whole column at opacity 0; without
-    // this the icons dropped into it (and the mark's landing slot) never show
-    hub.style.opacity = "1";
     const rail = hub.querySelector(".rail");
-    if (rail) rail.style.opacity = "1";
-    // the hub first stands where the sphere was: shifted right so the rail
-    // sits under the centered mark (both measured body-local)
-    const bodyR = body.getBoundingClientRect();
-    const railR = rail.getBoundingClientRect();
-    const railCx = railR.left + railR.width / 2 - bodyR.left;
-    const dx = acx() - railCx;
-    hub.style.transform = "translateX(" + dx + "px)";
-    await new Promise((r) => setTimeout(r, 140));
-    // the app icons drop down beneath the mark, one at a time
-    const items = [...hub.querySelectorAll(".rail-item:not(.sb)")];
-    await Promise.all(items.map((el, i) => anim(el, [
-      { transform: "translateY(" + -34 * S + "px)", opacity: 0 },
-      { transform: "translateY(0)", opacity: 1 },
-    ], { duration: 520, delay: 100 + i * 95, easing: "cubic-bezier(.34,1.56,.64,1)", fill: "forwards" })));
-    // then ALL of it moves left: the hub glides from its shifted stand-in
-    // position into its final flush-left full-width position, and the mark
-    // rides the rail slot (the margin column was already collapsed at load)
-    const GLIDE = { duration: 640, easing: "cubic-bezier(.3,.7,.2,1)", fill: "forwards" };
-    const slide = hub.animate([
-      { transform: "translateX(" + dx + "px)" },
-      { transform: "translateX(0)" },
-    ], GLIDE);
-    // the mark rides into the superbot slot: measured now (rail under the
-    // mark), so the horizontal delta is zero and the glide carries both left
-    // in lockstep while the mark rises into the slot and shrinks to the tile
     const sb = hub.querySelector(".rail-item.sb");
-    const bloomR = bloom.getBoundingClientRect();
-    const sbR = sb ? sb.getBoundingClientRect() : bloomR;
-    const tx = (sbR.left + sbR.width / 2) - (bloomR.left + bloomR.width / 2);
-    const ty = (sbR.top + sbR.height / 2) - (bloomR.top + bloomR.height / 2);
-    const ride = bloom.animate([
+    if (!rail || !sb) { hub.style.opacity = "1"; dissolve(); return; }
+    const ovR = overlay.getBoundingClientRect();
+
+    // measure the real rail: every tile's offset from the superbot tile, so
+    // the replica assembles with the exact pitch it must land on
+    const sbR = sb.getBoundingClientRect();
+    const parts = [...rail.children].filter((el) => el !== sb).map((el) => {
+      const r = el.getBoundingClientRect();
+      return {
+        el,
+        dx: (r.left + r.width / 2) - (sbR.left + sbR.width / 2),
+        dy: (r.top + r.height / 2) - (sbR.top + sbR.height / 2),
+        w: r.width, h: r.height,
+      };
+    });
+    const maxDy = parts.length ? parts[parts.length - 1].dy : 0;
+    // where the lockup rests: the real superbot slot, in overlay coords
+    const sbFx = sbR.left + sbR.width / 2 - ovR.left;
+    const sbFy = sbR.top + sbR.height / 2 - ovR.top;
+    // the assembly first stands centered in the arena, superbot tile on top
+    const homeY = acy() - maxDy / 2;
+    const k = sbR.width / (MARK * S);
+
+    // beat 3a — the mark shrinks to the tile size and rises to the column head
+    await anim(bloom, [
       { transform: "translate(0,0) scale(1)" },
-      { transform: "translate(" + tx + "px," + ty + "px) scale(" + px(44) / (MARK * S) + ")" },
-    ], GLIDE);
-    await Promise.all([slide.finished.catch(() => {}), ride.finished.catch(() => {})]);
-    // the mark becomes the rail's own superbot tile: commit the landed
-    // transform inline (a finished fill:forwards animation's effect can be
-    // garbage-collected), cancel, then crossfade
-    try { slide.commitStyles(); } catch (e) {}
-    try { slide.cancel(); } catch (e) {}
-    if (sb) sb.style.opacity = "1";
-    bloom.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 240, fill: "forwards" });
+      { transform: "translate(0," + (homeY - acy()) + "px) scale(" + k + ")" },
+    ], { duration: 620, easing: "cubic-bezier(.3,.7,.2,1)", fill: "forwards" });
+    settle(bloom);
+
+    // beat 3b — the other app icons drop down from the mark, one at a time:
+    // clones of the real rail children, so the landing is pixel-identical
+    const clones = parts.map((p) => {
+      const c = p.el.cloneNode(true);
+      c.style.cssText += ";position:absolute;margin:0;opacity:0;will-change:transform,opacity;left:" + (acx() + p.dx - p.w / 2) + "px;top:" + (homeY + p.dy - p.h / 2) + "px;";
+      if (c.classList.contains("rail-div")) c.style.cssText += ";background:var(--line);border-radius:2px;";
+      overlay.appendChild(c);
+      return c;
+    });
+    await Promise.all(clones.map((c, i) => anim(c, [
+      { transform: "translateY(-34px)", opacity: 0 },
+      { transform: "translateY(0)", opacity: 1 },
+    ], { duration: 480, delay: i * 90, easing: "cubic-bezier(.34,1.56,.64,1)", fill: "forwards" })));
+    clones.forEach(settle);
+
+    // beat 4 — ALL of it moves left as one: the lockup glides from its
+    // centered stand onto the real rail while the hub window materializes
+    // under it; the deltas are measured, so the landing is pixel-exact
+    const gx = sbFx - acx(), gy = sbFy - homeY;
+    hub.style.opacity = "1";
+    hub.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, easing: "ease-out" });
+    const from = "translate(0," + (homeY - acy()) + "px) scale(" + k + ")";
+    const to = "translate(" + gx + "px," + (homeY - acy() + gy) + "px) scale(" + k + ")";
+    await Promise.all([
+      anim(bloom, [{ transform: from }, { transform: to }], { duration: 640, easing: "cubic-bezier(.3,.7,.2,1)", fill: "forwards" }),
+      ...clones.map((c) => anim(c, [
+        { transform: "translate(0,0)" },
+        { transform: "translate(" + gx + "px," + gy + "px)" },
+      ], { duration: 640, easing: "cubic-bezier(.3,.7,.2,1)", fill: "forwards" })),
+    ]);
+    // the lockup becomes the real rail: reveal the column underneath (the
+    // clones sit pixel-aligned on top) and dissolve the overlay copies
+    rail.style.opacity = "1";
+    sb.style.opacity = "1";
+    parts.forEach((p) => { p.el.style.opacity = "1"; });
+    await Promise.all([
+      anim(bloom, [{ opacity: 1 }, { opacity: 0 }], { duration: 260, fill: "forwards" }),
+      ...clones.map((c) => anim(c, [{ opacity: 1 }, { opacity: 0 }], { duration: 260, fill: "forwards" })),
+    ]);
     // the frontend extends: the sidebar, chat lane and panel fade into view
     const rest = [...hub.querySelectorAll(".inner")].filter((el) => !el.classList.contains("rail"));
     await Promise.all(rest.map((el) => anim(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 380, fill: "forwards", easing: "ease-out" })));
