@@ -4,11 +4,11 @@
 //      exponentially (0.35 → 21 rad/s), dead center in the arena
 //   2. they converge and merge (the bench's 450ms accelerating window) and
 //      the superbot mascot mark flips and grows (fv-flip-icon-grow, exact)
-//   3. the mark glides LEFT and settles as the rail's home button
-//   4. the crew ICON rail assembles downward beneath it — separator, seven
-//      tiles and the + add-app tile springing in 44px apart — then hub-boot's
-//      story takes over as the overlay dissolves (margin text is hidden
-//      entirely; there is no transcript in this hero).
+//   3. the mark glides LEFT into the real frontend, landing on the hub's own
+//      superbot slot — no floating overlay rail
+//   4. the REAL frontend: the hub surface appears, its app icons drop down
+//      one by one, then the sidebar and chat lane extend into view — the full
+//      frontend. hub-boot's story (chips, sorting, transcript) is unused.
 // No text dropdowns, no overlapping layers: one beat at a time.
 (() => {
   const stage = document.getElementById("stage");
@@ -134,13 +134,11 @@
     el.style.transform = "translate3d(" + (C - TILE / 2 + x) + "px," + (C - TILE / 2 + y) + "px," + z + "px)";
   };
 
-  // the handoff: hub-boot starts playing beneath the overlay. Idempotent.
+  // the handoff: hub-boot's story is not used — the sphere hands straight to
+  // the real frontend
   let handedOff = false;
   const handoff = () => {
-    if (handedOff) return;
     handedOff = true;
-    window.__hubBootStartAt = HANDOFF_AT;
-    import("./hub-boot.js?v=9");
   };
 
   // dissolve the overlay, revealing the story already running underneath
@@ -205,60 +203,52 @@
     });
   const px = (v) => v * S;
 
-  // beat 3 — the mark glides LEFT to the bench's rail-button rest (40px,
-  // left 14, center 63px from the top)
+  // beat 3 — the mark glides LEFT into the real frontend's rail, landing
+  // dead on the hub's superbot slot
   const moveLeft = () => {
-    const dx = px(14 + 20) - acx();
-    const dy = px(63) - acy();
+    const ov = overlay.getBoundingClientRect();
+    const sb = document.querySelector("#hub .rail-item.sb");
+    let dx = px(34) - acx(), dy = px(63) - acy();
+    if (sb) {
+      const r = sb.getBoundingClientRect();
+      dx = (r.left + r.width / 2) - ov.left - acx();
+      dy = (r.top + r.height / 2) - ov.top - acy();
+    }
     const move = bloom.animate([
       { transform: "scale(1)" },
-      { transform: "translate(" + dx + "px," + dy + "px) scale(" + px(40) / (MARK * S) + ")" },
+      { transform: "translate(" + dx + "px," + dy + "px) scale(" + px(44) / (MARK * S) + ")" },
     ], { duration: 560, fill: "forwards", easing: "cubic-bezier(.3,.7,.2,1)" });
-    move.finished.then(() => railBloom()).catch(() => railBloom());
+    move.finished.then(() => showFrontend()).catch(() => showFrontend());
   };
 
-  // beat 4 — the ICON rail assembles downward beneath the settled mark:
-  // separator first, then the 7 crew tiles and the + add-app tile (the
-  // bench's exact bloom — icons only, no text)
-  const crewTile = (icon, sizeDesignPx) => {
-    const t = document.createElement("div");
-    const size = sizeDesignPx * S;
-    t.style.cssText = "position:absolute;border-radius:" + 10 * S + "px;background:#16161a;box-shadow:0 0 0 1px rgba(255,255,255,.07),0 8px 22px -8px rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;will-change:transform,opacity;opacity:0;width:" + size + "px;height:" + size + "px;";
-    const img = new Image();
-    img.src = icon.src;
-    img.alt = icon.name;
-    img.draggable = false;
-    img.style.cssText = "width:100%;height:100%;border-radius:" + 10 * S + "px;object-fit:cover;"; // full-bleed: the icons carry their own rounded backgrounds
-    t.appendChild(img);
-    overlay.appendChild(t);
-    return t;
-  };
-  const railBloom = () => {
-    const colLeft = 14;               // crew column left, rest coords
-    const crewTop0 = 91 + 8;          // below the separator line
-    const railSep = document.createElement("div");
-    railSep.style.cssText = "position:absolute;left:" + colLeft * S + "px;top:" + 91 * S + "px;width:" + 32 * S + "px;height:2px;border-radius:1px;background:rgba(255,255,255,.16);opacity:0;";
-    overlay.appendChild(railSep);
-    const crew = [0, 1, 2, 6, 5, 3, 4].map((idx) => crewTile(ICONS[idx], 40)); // bench order: Cursor, ChatGPT, Claude, Devin, Hermes, Gemini, Grok
-    const plusTile = crewTile(ICONS[0], 40);
-    plusTile.innerHTML = "";
-    plusTile.style.opacity = "0";
-    plusTile.innerHTML = '<svg viewBox="0 0 12 12" style="width:' + 12 * S + 'px;height:' + 12 * S + 'px"><path d="M6 1.8v8.4M1.8 6h8.4" stroke="#9aa0aa" stroke-width="1.4" stroke-linecap="round" fill="none"/></svg>';
-    crew.push(plusTile);
-    crew.forEach((el, i) => {
-      el.style.left = colLeft * S + "px";
-      el.style.top = (crewTop0 + i * 44) * S + "px";
-    });
-    Promise.all([
-      ...crew.map((el, i) => anim(el, [
-        { transform: "translateY(" + -8 * S + "px) scale(0.2)", opacity: 0 },
+  // beat 4 — the real frontend: the hub surface appears, its app icons drop
+  // down one by one, then the full frontend extends into view
+  const showFrontend = () => {
+    const hub = document.getElementById("hub");
+    if (!hub) { dissolve(); return; }
+    const sequence = async () => {
+      // the mark crossfades into the hub's own superbot tile
+      const sb = hub.querySelector(".rail-item.sb");
+      if (sb) sb.style.opacity = "1";
+      bloom.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, fill: "forwards" });
+      hub.style.opacity = "1";
+      await new Promise((r) => setTimeout(r, 180));
+      // the app icons drop down beneath the mark, one at a time
+      const items = [...hub.querySelectorAll(".rail-item:not(.sb)")];
+      await Promise.all(items.map((el, i) => anim(el, [
+        { transform: "translateY(" + -10 * S + "px) scale(0.3)", opacity: 0 },
         { transform: "translateY(0) scale(1)", opacity: 1 },
-      ], { duration: 480, delay: i * 70, easing: "cubic-bezier(.34,1.56,.64,1)", fill: "forwards" })),
-      anim(railSep, [{ opacity: 0 }, { opacity: 1 }], { duration: 300, fill: "forwards" }),
-    ]).then(() => {
+      ], { duration: 480, delay: 120 + i * 90, easing: "cubic-bezier(.34,1.56,.64,1)", fill: "forwards" })));
+      // the frontend extends: sidebar and chat lane come into view
+      const rest = [...hub.querySelectorAll(".inner")].filter((el) => !el.classList.contains("rail"));
+      await Promise.all([
+        ...rest.map((el) => anim(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 380, fill: "forwards", easing: "ease-out" })),
+        ...[...hub.children].filter((el) => !el.classList.contains("rail") && !el.classList.contains("inner")).map((el) => anim(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 380, fill: "forwards", easing: "ease-out" })),
+      ]);
       handoff();
       dissolve();
-    }).catch(() => { handoff(); dissolve(); });
+    };
+    sequence();
   };
 
   raf = requestAnimationFrame(frame);
