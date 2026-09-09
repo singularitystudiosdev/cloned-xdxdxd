@@ -69,16 +69,16 @@
   // boot log (0-2.9) AND past the chips segment (5.0-12.15, removed)
   const HANDOFF_AT = 12.0;
 
-  // overlay clips to the arena; the choreography ANCHORS to the terminal
-  // body's layout box (the visible interior) — the arena's own box is far
-  // larger than what's visible, so its geometric center lands off-screen
+  // overlay clips to the terminal BODY (the visible interior) — the arena's
+  // own box is far larger than what's visible, so its geometric center lands
+  // off-screen; one shared, true coordinate space for every beat
+  const body = stage.querySelector(".body") || stage;
   const overlay = document.createElement("div");
   overlay.className = "sphere-intro";
   overlay.setAttribute("aria-hidden", "true");
   overlay.style.cssText = "position:absolute;inset:0;overflow:hidden;z-index:30;pointer-events:none;";
-  arena.appendChild(overlay);
+  body.appendChild(overlay);
 
-  const body = stage.querySelector(".body") || stage;
   // the choreography's center in overlay px — every centered element anchors here
   const acx = () => body.offsetWidth * 0.64;
   const acy = () => body.offsetHeight * 0.5;
