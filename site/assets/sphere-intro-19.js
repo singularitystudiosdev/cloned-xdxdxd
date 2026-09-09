@@ -1,15 +1,17 @@
 // sphere-intro: the hero's opening — the sphere-collapse bench's desktop
 // intro (hero-loading-animations.html), adapted to this site's stage:
-//   1. 17 app icons pop in one at a time on a fibonacci sphere and spin up
-//      exponentially (0.35 → 21 rad/s), dead center in the arena
+//   1. the rail's four app icons (openai, claude, gemini, cursor — the same
+//      brand tiles the real rail carries) pop in on a fibonacci sphere and
+//      spin up exponentially (0.35 → 21 rad/s), centered in the arena
 //   2. they converge and merge (the bench's 450ms accelerating window) and
 //      the superbot mascot mark flips and grows (fv-flip-icon-grow, exact)
-//   3. the REAL frontend's rail appears and its app icons drop down one by
-//      one (the mark holds center as the rail's superbot stand-in)
-//   4. the mark glides LEFT directly into that sidebar, landing on the hub's
-//      own superbot tile, then the sidebar, chat lane and panel extend into
-//      view — the full frontend. hub-boot's story (chips, sorting,
-//      transcript) is unused.
+//   3. the hub window appears SHIFTED RIGHT so its rail sits under the mark,
+//      and the real app icons drop down one by one beneath it
+//   4. then ALL of it moves left: the terminal's transcript column collapses,
+//      the whole hub glides into its full-width position, and the mark rides
+//      its rail slot, landing as the sidebar's superbot tile — the sidebar,
+//      chat lane and panel then extend into view. hub-boot's story (chips,
+//      sorting, transcript) is unused.
 // No text dropdowns, no overlapping layers: one beat at a time.
 (() => {
   const stage = document.getElementById("stage");
@@ -20,25 +22,10 @@
   // silently skipping the whole intro (the machine reports reduce), leaving
   // hub-boot to run its story from zero — the opposite of the request
 
-  const ICONS = [
-    { name: "Cursor", src: "site/assets/intro/cursor.png" },
-    { name: "ChatGPT", src: "site/assets/intro/chatgpt.webp" },
-    { name: "Claude", src: "site/assets/intro/claude.png" },
-    { name: "Gemini", src: "site/assets/intro/gemini-app-icon.png" },
-    { name: "Grok", src: "site/assets/intro/grok.png" },
-    { name: "Hermes", src: "site/assets/intro/hermes.png" },
-    { name: "Devin", src: "site/assets/intro/devin.png" },
-    { name: "Copilot", src: "site/assets/intro/copilot.svg" },
-    { name: "v0", src: "site/assets/intro/v0.svg" },
-    { name: "Bolt", src: "site/assets/intro/bolt.png" },
-    { name: "Lovable", src: "site/assets/intro/lovable.png" },
-    { name: "Replit", src: "site/assets/intro/replit.png" },
-    { name: "Base44", src: "site/assets/intro/base44.png" },
-    { name: "VS Code", src: "site/assets/intro/vscode.png" },
-    { name: "JetBrains", src: "site/assets/intro/jetbrains.png" },
-    { name: "Kiro", src: "site/assets/intro/kiro.ico" },
-    { name: "Warp", src: "site/assets/intro/warp.png" },
-  ];
+  // the spinning tiles ARE the rail's app icons — same registry, same brand
+  // grounds — so what merges is what the frontend later shows
+  const RAIL_APPS = ["openai", "claude", "gemini", "cursor"];
+  const SPIN_TILES = 8; // each vendor twice, spread evenly
 
   // fixed coordinate space: 460px choreography, sphere R=175, 54px tiles
   const STAGE = 460, C = STAGE / 2, R = 175, TILE = 54;
@@ -53,17 +40,13 @@
   });
 
   const MERGE_T = 4000;
-  const POP_START = 120, POP_STAGGER = 48;
+  const POP_START = 120, POP_STAGGER = 60;
   const popAt = (i) => POP_START + i * POP_STAGGER;
   const OMEGA0 = 0.35, OMEGA_MAX = 21;
   const omegaAt = (tMs) => {
     const x = clamp01(tMs / MERGE_T);
     return OMEGA0 * Math.exp(Math.log(OMEGA_MAX / OMEGA0) * Math.pow(x, 1.55));
   };
-
-  // the hub-boot story picks up here once the sphere hands off: past the
-  // boot log (0-2.9) AND past the chips segment (5.0-12.15, removed)
-  const HANDOFF_AT = 12.0;
 
   // overlay clips to the terminal BODY (the visible interior) — the arena's
   // own box is far larger than what's visible, so its geometric center lands
@@ -75,17 +58,17 @@
   overlay.style.cssText = "position:absolute;inset:0;overflow:hidden;z-index:30;pointer-events:none;";
   body.appendChild(overlay);
 
-  // the choreography's center in overlay px — every centered element anchors here
-  const acx = () => body.offsetWidth * 0.64;
-  const acy = () => body.offsetHeight * 0.5;
+  // the choreography's center in overlay px — the ARENA's center (the right
+  // column, where the hub lives while the transcript margin is still open).
+  // Read live: once the margin collapses at the slide, offsetLeft is 0, so
+  // nothing after the collapse may call this for placement
+  const acx = () => arena.offsetLeft + arena.clientWidth / 2;
+  const acy = () => arena.offsetTop + arena.clientHeight / 2;
   let S = 1;
   const fit = () => {
-    // content-area center: the margin column is ~28% of the body's width
-    const ax = body.offsetWidth * 0.64;
-    const ay = body.offsetHeight * 0.5;
-    S = Math.min(1, Math.min(body.offsetWidth * 0.7, body.offsetHeight) / (STAGE + 40));
-    holder.style.left = ax + "px";
-    holder.style.top = ay + "px";
+    S = Math.min(1, Math.min(arena.clientWidth * 0.72, arena.clientHeight) / (STAGE + 40));
+    holder.style.left = acx() + "px";
+    holder.style.top = acy() + "px";
     holder.style.transform = "translate(-50%,-50%) scale(" + S + ")";
   };
 
@@ -117,16 +100,18 @@
   placeBloom();
   addEventListener("resize", placeBloom);
 
-  const FIB = fibDirs(ICONS.length);
-  const tiles = ICONS.map((icon) => {
-    const t = document.createElement("div");
-    t.style.cssText = "position:absolute;left:0;top:0;width:" + TILE + "px;height:" + TILE + "px;border-radius:12px;box-shadow:0 10px 30px -10px rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;will-change:transform,opacity,filter;opacity:0;";
-    const img = new Image();
-    img.src = icon.src;
-    img.alt = icon.name;
-    img.draggable = false;
-    img.style.cssText = "width:72%;height:72%;border-radius:8px;object-fit:contain;";
-    t.appendChild(img);
+  const FIB = fibDirs(SPIN_TILES);
+  const tiles = RAIL_APPS.concat(RAIL_APPS).map((app, i) => {
+    // reuse the rail's own tile: .rail-item + data-app carries the exact brand
+    // ground, ink and hairline the sidebar's icons wear (hub-boot.css)
+    const t = document.createElement("span");
+    t.className = "rail-item";
+    t.dataset.app = app;
+    t.innerHTML = '<svg><use href="#sb-ic-' + app + '"/></svg>';
+    t.style.cssText = "position:absolute;left:0;top:0;width:" + TILE + "px;height:" + TILE + "px;box-shadow:0 10px 30px -10px rgba(0,0,0,.8);will-change:transform,opacity,filter;opacity:0;";
+    const svg = t.querySelector("svg");
+    svg.style.width = "31px";
+    svg.style.height = "31px";
     holder.appendChild(t);
     return t;
   });
@@ -142,7 +127,7 @@
     handedOff = true;
   };
 
-  // dissolve the overlay, revealing the story already running underneath
+  // dissolve the overlay, revealing the frontend already in place
   const dissolve = () => {
     overlay.style.transition = "opacity 300ms ease";
     overlay.style.opacity = "0";
@@ -153,7 +138,7 @@
   // tester override: ?intro=<ms> jumps into the timeline — the bench's ?t= pattern
   const startAt = Math.max(0, parseInt(new URLSearchParams(location.search).get("intro") || "0", 10) || 0);
   let clock = startAt;
-  const popped = new Array(ICONS.length).fill(false);
+  const popped = new Array(SPIN_TILES).fill(false);
   const frame = (ts) => {
     if (last == null) last = ts;
     const dMs = Math.min(50, ts - last);
@@ -161,10 +146,10 @@
     clock += dMs;
     ang += (dMs / 1000) * omegaAt(Math.min(clock, MERGE_T));
 
-    for (let i = 0; i < ICONS.length; i++) {
+    for (let i = 0; i < SPIN_TILES; i++) {
       if (clock >= popAt(i) && !popped[i]) { popped[i] = true; tiles[i].style.opacity = "1"; }
     }
-    for (let i = 0; i < ICONS.length; i++) {
+    for (let i = 0; i < SPIN_TILES; i++) {
       if (!popped[i]) continue;
       const v = rotY3(FIB[i], ang);
       const mergeT = Math.pow(clamp01((clock - (MERGE_T - 450)) / 450), 1.7);
@@ -204,36 +189,11 @@
     });
   const px = (v) => v * S;
 
-  // beat 4a — the mark glides LEFT directly into the sidebar, landing dead on
-  // the hub's superbot slot, then crossfades into the real tile
-  const moveLeft = () => new Promise((resolve) => {
-    const ov = overlay.getBoundingClientRect();
-    const sb = document.querySelector("#hub .rail-item.sb");
-    let dx = px(34) - acx(), dy = px(63) - acy();
-    if (sb) {
-      const r = sb.getBoundingClientRect();
-      dx = (r.left + r.width / 2) - ov.left - acx();
-      dy = (r.top + r.height / 2) - ov.top - acy();
-    }
-    const move = bloom.animate([
-      { transform: "scale(1)" },
-      { transform: "translate(" + dx + "px," + dy + "px) scale(" + px(44) / (MARK * S) + ")" },
-    ], { duration: 560, fill: "forwards", easing: "cubic-bezier(.3,.7,.2,1)" });
-    const land = () => {
-      // the mark becomes the rail's own superbot tile: commit the landed
-      // transform inline (a finished fill:forwards animation's effect can be
-      // garbage-collected), cancel, then crossfade
-      try { move.commitStyles(); } catch (e) {}
-      try { move.cancel(); } catch (e) {}
-      if (sb) sb.style.opacity = "1";
-      bloom.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 240, fill: "forwards" });
-      resolve();
-    };
-    move.finished.then(land).catch(land);
-  });
-
-  // beat 4b — the real frontend extends: sidebar, chat lane and panel come
-  // into view after the mark has landed in the sidebar
+  // beats 3 + 4 — the real frontend: the hub appears SHIFTED RIGHT so its
+  // rail sits under the mark, the app icons drop down one by one, then the
+  // whole assembly glides LEFT into its full-width position while the mark
+  // rides its rail slot, landing as the sidebar's superbot tile; the rest of
+  // the frontend then extends into view
   const showFrontend = async () => {
     const hub = document.getElementById("hub");
     if (!hub) { dissolve(); return; }
@@ -243,16 +203,59 @@
     hub.style.opacity = "1";
     const rail = hub.querySelector(".rail");
     if (rail) rail.style.opacity = "1";
+    // the hub first stands where the sphere was: shifted right so the rail
+    // sits under the centered mark (both measured body-local)
+    const bodyR = body.getBoundingClientRect();
+    const railR = rail.getBoundingClientRect();
+    const railCx = railR.left + railR.width / 2 - bodyR.left;
+    const dx = acx() - railCx;
+    hub.style.transform = "translateX(" + dx + "px)";
     await new Promise((r) => setTimeout(r, 140));
-    // the app icons drop down into the real rail, one at a time — the mark
-    // holds center as the rail's superbot stand-in
+    // the app icons drop down beneath the mark, one at a time
     const items = [...hub.querySelectorAll(".rail-item:not(.sb)")];
     await Promise.all(items.map((el, i) => anim(el, [
       { transform: "translateY(" + -34 * S + "px)", opacity: 0 },
       { transform: "translateY(0)", opacity: 1 },
     ], { duration: 520, delay: 100 + i * 95, easing: "cubic-bezier(.34,1.56,.64,1)", fill: "forwards" })));
-    // the mark glides left into that sidebar, landing on the superbot tile
-    await moveLeft();
+    // then ALL of it moves left: the transcript column collapses (instantly —
+    // the glide below owns the motion; the stylesheet's 700ms grid transition
+    // is suppressed so the collapse can't fight the WAAPI), the hub glides to
+    // its final full-width position, and the mark rides the rail slot
+    const bodyEl = stage.querySelector(".body") || body;
+    bodyEl.style.transition = "none";
+    bodyEl.style.gridTemplateColumns = "0% minmax(0, 1fr)";
+    const mg = stage.querySelector(".margin");
+    if (mg) { mg.style.opacity = "0"; mg.style.padding = "0"; mg.style.borderRight = "0"; }
+    // same frame as the collapse: the hub's untranslated origin just moved
+    // left by the margin's width, so re-apply the shift that keeps the rail
+    // visually under the mark, then glide both to rest together
+    const m = arena.offsetLeft; // captured pre-collapse: this WAS the margin's width
+    hub.style.transform = "translateX(" + (dx + m) + "px)";
+    const GLIDE = { duration: 640, easing: "cubic-bezier(.3,.7,.2,1)", fill: "forwards" };
+    const slide = hub.animate([
+      { transform: "translateX(" + (dx + m) + "px)" },
+      { transform: "translateX(0)" },
+    ], GLIDE);
+    // the mark rides into the superbot slot: measured now (rail under the
+    // mark), so the horizontal delta is zero and the glide carries both left
+    // in lockstep while the mark rises into the slot and shrinks to the tile
+    const sb = hub.querySelector(".rail-item.sb");
+    const bloomR = bloom.getBoundingClientRect();
+    const sbR = sb ? sb.getBoundingClientRect() : bloomR;
+    const tx = (sbR.left + sbR.width / 2) - (bloomR.left + bloomR.width / 2);
+    const ty = (sbR.top + sbR.height / 2) - (bloomR.top + bloomR.height / 2);
+    const ride = bloom.animate([
+      { transform: "translate(0,0) scale(1)" },
+      { transform: "translate(" + tx + "px," + ty + "px) scale(" + px(44) / (MARK * S) + ")" },
+    ], GLIDE);
+    await Promise.all([slide.finished.catch(() => {}), ride.finished.catch(() => {})]);
+    // the mark becomes the rail's own superbot tile: commit the landed
+    // transform inline (a finished fill:forwards animation's effect can be
+    // garbage-collected), cancel, then crossfade
+    try { slide.commitStyles(); } catch (e) {}
+    try { slide.cancel(); } catch (e) {}
+    if (sb) sb.style.opacity = "1";
+    bloom.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 240, fill: "forwards" });
     // the frontend extends: the sidebar, chat lane and panel fade into view
     const rest = [...hub.querySelectorAll(".inner")].filter((el) => !el.classList.contains("rail"));
     await Promise.all(rest.map((el) => anim(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 380, fill: "forwards", easing: "ease-out" })));
@@ -264,5 +267,5 @@
 
   // watchdog: if any step stalls (WAAPI promises can sit unresolved under
   // throttling), force the handoff and dissolve so the stage is never covered
-  setTimeout(() => { handoff(); if (overlay.isConnected) dissolve(); }, startAt + 10500);
+  setTimeout(() => { handoff(); if (overlay.isConnected) dissolve(); }, startAt + 11000);
 })();
