@@ -13,6 +13,13 @@
 //      exactly on the real rail, crossfades into it, and the sidebar, chat
 //      lane and panel extend into view. hub-boot's story (chips, sorting,
 //      transcript) is unused.
+//   5. the phone (ported from hub-boot.js's 18.0-22.4, xdxdxd.dsh.sh): the
+//      chat lane's first line lands, the mobile app's thread screen slides up
+//      at the arena's right, the sync beam runs from the conversation to the
+//      phone's shoulder, the same line lands on both screens in one frame
+//      with the "synced" chip, and the phone docks beside the hub as a right
+//      column (hub-boot.css .docked). Same markup, same stylesheet as the
+//      source site — only the clock is this file's.
 // No text dropdowns, no overlapping layers: one beat at a time.
 (() => {
   const stage = document.getElementById("stage");
@@ -353,11 +360,113 @@
     await Promise.all(rest.map((el) => anim(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 380, fill: "forwards", easing: "ease-out" })));
     handoff();
     dissolve();
+    playPhone();
+  };
+
+  // beat 5 — the phone. hub-boot.js's helpers (seg/outQuint/outBack/popIn),
+  // verbatim, so the beats read exactly as they do on the source site
+  const seg = (t, a, b) => clamp01((t - a) / (b - a));
+  const outQuint = (p) => 1 - Math.pow(1 - p, 5);
+  const outBack = (p) => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2); };
+  const inOut = (p) => (p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2);
+  const op = (el, v) => { if (el) el.style.opacity = String(clamp01(v)); };
+  const popIn = (el, t, at, dur = 0.25, dy = 6) => {
+    if (!el) return;
+    const p = seg(t, at, at + dur);
+    op(el, p * 2);
+    el.style.transform = "translateY(" + ((1 - outBack(p)) * dy).toFixed(1) + "px)";
+  };
+  let phonePlayed = false;
+  const playPhone = () => {
+    if (phonePlayed) return;
+    phonePlayed = true;
+    const hub = document.getElementById("hub"), phone = document.getElementById("phone");
+    if (!hub || !phone) return;
+    const label = document.getElementById("phone-label"), sync = document.getElementById("sync");
+    const beam = document.getElementById("beam"), beamPath = document.getElementById("beam-path"), beamRun = document.getElementById("beam-run-path");
+    const beamFade = document.getElementById("beam-fade"), beamRunGrad = document.getElementById("beam-run");
+    const feed = [1, 2].map((n) => hub.querySelector('.msg[data-m="' + n + '"]'));
+    const phoneMsgs = [...phone.querySelectorAll(".msg")];
+    // hub-boot.css .docked: the hub gives up its right quarter and the phone
+    // becomes a full-height column there, on the stylesheet's own transitions.
+    // The inline translateY stays: the sheet's rest transform is 120% (below
+    // the arena), so clearing it would drop the phone back out of frame
+    const dock = () => { phone.style.transform = "translateY(0%)"; phone.classList.add("docked"); hub.classList.add("docked"); };
+    // the phone cut (<=640px) hides the phone, its label and the beam — the
+    // viewer is already on one. The lane's lines still land; nothing docks
+    const noPhone = getComputedStyle(phone).display === "none";
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      feed.forEach((el) => { op(el, 1); if (el) el.style.transform = ""; });
+      if (noPhone) return;
+      phoneMsgs.forEach((el) => { op(el, 1); el.style.transform = ""; });
+      op(phone, 1); op(sync, 1); op(label, 0);
+      dock();
+      return;
+    }
+    // the sync beam (hub-boot.js layout(), same geometry): it leaves the lower
+    // half of the chat lane and lands on the phone's top-left shoulder, where
+    // the "synced" chip lights a beat later. offset* ignores transforms, so the
+    // phone's rest position is read while it still sits below the arena
+    let B = null;
+    if (!noPhone && beam && beamPath && beamRun && beamFade && beamRunGrad) {
+      const W = arena.clientWidth, H = arena.clientHeight;
+      const px = phone.offsetLeft, py = phone.offsetTop, pw = phone.offsetWidth;
+      const x0 = W * 0.45, y0 = H * 0.62, x1 = px + pw * 0.22, y1 = py + 10;
+      const cx = x0 + (x1 - x0) * 0.3, cy = y1 - 14;
+      const d = "M " + x0.toFixed(1) + " " + y0.toFixed(1) + " Q " + cx.toFixed(1) + " " + cy.toFixed(1) + " " + x1.toFixed(1) + " " + y1.toFixed(1);
+      beamPath.setAttribute("d", d);
+      beamRun.setAttribute("d", d);
+      B = { x0, x1, span: Math.max(90, (x1 - x0) * 0.42) };
+      for (const g of [beamFade, beamRunGrad]) { g.setAttribute("y1", "0"); g.setAttribute("y2", "0"); }
+      beamFade.setAttribute("x1", x0.toFixed(1));
+      beamFade.setAttribute("x2", x1.toFixed(1));
+      // the light parked wholly before the rail's start until its run
+      beamRunGrad.setAttribute("x1", (B.x0 - B.span).toFixed(1));
+      beamRunGrad.setAttribute("x2", B.x0.toFixed(1));
+      beam.setAttribute("viewBox", "0 0 " + W + " " + H);
+    }
+    // hub-boot's story clock, rebased: its 17.0 (the chat lane has landed) is
+    // 0 here, so the phone slides at 1.0, the light runs 2.4-4.0, the line
+    // lands on both screens at 4.2 and the phone docks at 5.0
+    const END = 5.6;
+    let t0 = null, docked = false;
+    const frame = (now) => {
+      if (t0 == null) t0 = now;
+      const t = (now - t0) / 1000;
+      popIn(feed[0], t, 0.0);
+      popIn(feed[1], t, 4.2);
+      if (!noPhone) {
+        const p = outQuint(seg(t, 1.0, 1.5));
+        op(phone, p * 2);
+        if (!docked) phone.style.transform = "translateY(" + ((1 - p) * 120).toFixed(1) + "%)";
+        popIn(phoneMsgs[0], t, 1.5);
+        popIn(phoneMsgs[1], t, 4.2);
+        if (B) {
+          op(beam, seg(t, 2.2, 2.5) * (1 - seg(t, 4.4, 4.8)));
+          // one light, once: swept from wholly before the start to wholly past
+          // the end, so it enters and leaves the rail as a comet
+          const gx = lerp(B.x0 - B.span, B.x1 + B.span, inOut(seg(t, 2.4, 4.0)));
+          beamRunGrad.setAttribute("x1", gx.toFixed(1));
+          beamRunGrad.setAttribute("x2", (gx + B.span).toFixed(1));
+        }
+        op(sync, seg(t, 4.2, 4.4));
+        // the label under the phone has no room once it docks flush with the
+        // hub's foot; the "synced" chip in the phone's own header carries the fact
+        popIn(label, t, 4.0, 0.25, 4);
+        if (t >= 5.0) {
+          if (!docked) { docked = true; dock(); }
+          op(label, 1 - seg(t, 5.0, 5.4));
+        }
+      }
+      if (t < END) requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
   };
 
   raf = requestAnimationFrame(frame);
 
   // watchdog: if any step stalls (WAAPI promises can sit unresolved under
   // throttling), force the handoff and dissolve so the stage is never covered
-  setTimeout(() => { handoff(); if (overlay.isConnected) dissolve(); }, startAt + 11000);
+  // — and play the phone anyway, so the end state is the source site's
+  setTimeout(() => { handoff(); if (overlay.isConnected) dissolve(); playPhone(); }, startAt + 11000);
 })();
