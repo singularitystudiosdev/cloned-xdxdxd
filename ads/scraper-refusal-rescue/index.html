@@ -417,7 +417,6 @@
   // ---- deterministic clock: ?t=<ms> seeks; scenes keyed to a shared timeline ----
   const q = new URLSearchParams(location.search);
   const seek = Math.max(0, parseFloat(q.get("t") || "0") || 0);
-  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // ---- timeline (ms) ----
   const T = {
@@ -429,7 +428,7 @@
     wbStart: 9200,
     cursorGo: 12800, cursorDown: 14200, cursorUp: 14700,
     dive: 15100,
-    srcOn: 15600, loadChip: 15600,
+    srcOn: 15600,
     mergeT: 4000, // inside scene clock
     msg1: 15600 + 7400,
     ansOn: 23800,
@@ -541,8 +540,6 @@ if __name__ == "__main__":
   };
 
   // ---- rendering ----
-  let t0 = performance.now();
-  let sceneClockSrc = 0; // the source scene's own clock
 
   const typeInto = (el, text, t, a, b) => {
     const n = Math.floor(seg(t, a, b) * text.length);
@@ -585,7 +582,6 @@ if __name__ == "__main__":
         const bodyChars = Math.floor(Math.max(0, (t - T.replyStart) / 26));
         const shown = head + REFUSAL_BODY.slice(0, bodyChars);
         bText.innerHTML = shown.replace(/^❌/, '<span class="xmark">❌</span>') + '<span class="typing-dot"></span>';
-        bText.parentElement.parentElement.scrollIntoView;
       }
       // popup + white bubble
       popupZone.style.visibility = t >= T.popup && t < T.dive ? "visible" : "hidden";
