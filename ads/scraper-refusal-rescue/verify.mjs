@@ -1,14 +1,12 @@
 // Headless verification harness for ads/scraper-refusal-rescue — run: node ads/scraper-refusal-rescue/verify.mjs [base-url]
 // Resolves playwright from PLAYWRIGHT_IMPORT, a local node_modules, or the tools install under .tmp.
-// DOM-level verification of every storyboard beat at seek times, plus a real
-// clipboard write check. Prints PASS/FAIL per assertion. Exit 1 on any FAIL.
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 const PW = process.env.PLAYWRIGHT_IMPORT
   || (existsSync('./node_modules/playwright/index.mjs') ? './node_modules/playwright/index.mjs' : './.tmp/refusal-rescue-tools/node_modules/playwright/index.mjs');
 const { chromium } = await import(resolve(PW));
 
-const BASE = (process.argv[2] || 'https://singularitystudiosdev.github.io/cloned-xdxdxd/ads/scraper-refusal-rescue/index.html');
+const BASE = process.argv[2] || 'https://singularitystudiosdev.github.io/cloned-xdxdxd/ads/scraper-refusal-rescue/index.html';
 const browser = await chromium.launch({ headless: true, channel: 'chrome' });
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 }, reducedMotion: 'no-preference', permissions: ['clipboard-read', 'clipboard-write'] });
 const page = await ctx.newPage();
@@ -144,7 +142,7 @@ check('mascot tile present', await page.$eval('#sc-end .mark img', (el) => el.ge
 check('wordmark slid in', await page.$eval('#wordmark', (el) => el.classList.contains('slide')));
 check('wordmark text', (await page.textContent('#wordmark')).includes('superbot.gg'));
 const wmTf = await page.$eval('#wordmark', (el) => getComputedStyle(el).transform);
-check('wordmark at rest (slid)', wmTf === 'none' || /matrix/.test(wmTf), wmTf);
+check('wordmark at rest (slid)', wmTf === 'none' || /^matrix\(1, 0(\.0)?, 0, 1, 0, 0\)$/.test(wmTf), wmTf);
 
 // 14. free-run: loop restarts cleanly. The ad's clock is rAF-driven and throttles
 // in headless, so poll: first observe the pass reaching the end card (sc-end on,
@@ -166,7 +164,9 @@ for (let i = 0; i < 180 && !restarted; i++) {
 }
 check('first pass reaches end card', sawEnd);
 check('loop restarts to chat scene', restarted);
-check('sent bubble hidden after restart', restarted);
+// independent re-read: the sent bubble's own computed display, not the shared flag
+const uHiddenNow = await page.$eval('#u-msg', (el) => getComputedStyle(el).display === 'none').catch(() => false);
+check('sent bubble hidden after restart', uHiddenNow);
 
 check('no console/page errors', errors.length === 0, errors.join(' | '));
 console.log(fails ? `\n${fails} FAIL(S)` : '\nALL CHECKS PASSED');
