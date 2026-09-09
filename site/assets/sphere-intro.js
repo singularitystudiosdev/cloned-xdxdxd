@@ -69,17 +69,27 @@
   // boot log (0-2.9) AND past the chips segment (5.0-12.15, removed)
   const HANDOFF_AT = 12.0;
 
-  // overlay fills the ARENA — its center is the choreography's center
+  // overlay clips to the arena; the choreography ANCHORS to the terminal
+  // body's layout box (the visible interior) — the arena's own box is far
+  // larger than what's visible, so its geometric center lands off-screen
   const overlay = document.createElement("div");
   overlay.className = "sphere-intro";
   overlay.setAttribute("aria-hidden", "true");
   overlay.style.cssText = "position:absolute;inset:0;overflow:hidden;z-index:30;pointer-events:none;";
   arena.appendChild(overlay);
 
+  const body = stage.querySelector(".body") || stage;
+  // the choreography's center in overlay px — every centered element anchors here
+  const acx = () => body.offsetWidth * 0.64;
+  const acy = () => body.offsetHeight * 0.5;
   let S = 1;
   const fit = () => {
-    const r = arena.getBoundingClientRect();
-    S = Math.min(1, Math.min(r.width, r.height) / (STAGE + 40));
+    // content-area center: the margin column is ~28% of the body's width
+    const ax = body.offsetWidth * 0.64;
+    const ay = body.offsetHeight * 0.5;
+    S = Math.min(1, Math.min(body.offsetWidth * 0.7, body.offsetHeight) / (STAGE + 40));
+    holder.style.left = ax + "px";
+    holder.style.top = ay + "px";
     holder.style.transform = "translate(-50%,-50%) scale(" + S + ")";
   };
 
@@ -104,6 +114,12 @@
   bloom.appendChild(bloomTile);
   bloom.appendChild(mark);
   overlay.appendChild(bloom);
+  const placeBloom = () => {
+    bloom.style.left = acx() + "px";
+    bloom.style.top = acy() + "px";
+  };
+  placeBloom();
+  addEventListener("resize", placeBloom);
 
   const FIB = fibDirs(ICONS.length);
   const tiles = ICONS.map((icon) => {
@@ -197,8 +213,8 @@
   // beat 3 — the mark glides LEFT to the bench's rail-button rest (40px,
   // left 14, center 63px from the top)
   const moveLeft = () => {
-    const dx = px(14 + 20) - overlay.clientWidth / 2;
-    const dy = px(63) - overlay.clientHeight / 2;
+    const dx = px(14 + 20) - acx();
+    const dy = px(63) - acy();
     const move = bloom.animate([
       { transform: "scale(1)" },
       { transform: "translate(" + dx + "px," + dy + "px) scale(" + px(40) / (MARK * S) + ")" },
