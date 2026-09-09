@@ -85,19 +85,17 @@
   fit();
   addEventListener("resize", fit);
 
-  // the merge target — the site's own mascot mark on the dark tile, with the
-  // same teal/magenta chromatic fringe the hero's big mascot carries
+  // the merge target — the rail's OWN superbot tile (brand/tile.svg: black
+  // ground, storm ring, the mark), the same artwork .rail-item.sb shows, so
+  // when the flipped tile lands on the rail slot nothing has to be swapped
   const MARK = 250; // design px
   const bloom = document.createElement("div");
   bloom.style.cssText = "position:absolute;left:50%;top:50%;width:" + MARK * S + "px;height:" + MARK * S + "px;margin:" + (-MARK * S) / 2 + "px 0 0 " + (-MARK * S) / 2 + "px;z-index:5;opacity:0;will-change:transform,filter;";
-  const bloomTile = document.createElement("div");
-  bloomTile.style.cssText = "position:absolute;inset:0;border-radius:56px;background:#101014;box-shadow:0 0 0 1px rgba(255,255,255,.07),0 18px 70px -18px rgba(0,0,0,.85);";
   const mark = new Image();
-  mark.src = "site/assets/brand/mark-clean.svg";
+  mark.src = "site/assets/brand/tile.svg";
   mark.alt = "";
   mark.draggable = false;
-  mark.style.cssText = "position:absolute;inset:14%;width:72%;height:72%;filter:drop-shadow(-2px 0 0 #34e0c8) drop-shadow(2px 0 0 #e14fd2);";
-  bloom.appendChild(bloomTile);
+  mark.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block;";
   bloom.appendChild(mark);
   overlay.appendChild(bloom);
   const placeBloom = () => {
@@ -204,83 +202,93 @@
     try { a.cancel(); } catch (e) {}
   };
 
-  // beats 3 + 4 — the rail assembles UNDER the mark, in the middle of the
-  // stage, then the whole lockup glides left and lands on the real rail
+  // beats 3 + 4 — the REAL rail assembles under the mark, in the middle of
+  // the stage, then the whole lockup glides left into place. Nothing is
+  // cloned and nothing crossfades: the icons that drop in ARE the sidebar's
+  // icons (the real .rail translated to mid-stage), and the mark that lands
+  // is the same tile.svg the rail slot draws, swapped in the same frame
   const showFrontend = async () => {
     const hub = document.getElementById("hub");
     if (!hub) { dissolve(); return; }
     const rail = hub.querySelector(".rail");
     const sb = hub.querySelector(".rail-item.sb");
     if (!rail || !sb) { hub.style.opacity = "1"; dissolve(); return; }
-    const ovR = overlay.getBoundingClientRect();
+    const GLIDE = "cubic-bezier(.3,.7,.2,1)";
 
-    // measure the real rail: every tile's offset from the superbot tile, so
-    // the replica assembles with the exact pitch it must land on
+    // the hub is live from here, but invisible: window and rail grounds are
+    // transparent until the glide, the superbot slot waits for the mark, and
+    // the selection pill waits for the sidebar
+    hub.style.opacity = "1";
+    hub.style.background = "transparent";
+    hub.style.borderColor = "transparent";
+    rail.style.opacity = "1";
+    rail.style.background = "transparent";
+    rail.style.borderRightColor = "transparent";
+    sb.classList.remove("sel");
+
+    // measure the real rail at rest — the landing geometry
+    const ovR = overlay.getBoundingClientRect();
     const sbR = sb.getBoundingClientRect();
-    const parts = [...rail.children].filter((el) => el !== sb).map((el) => {
-      const r = el.getBoundingClientRect();
-      return {
-        el,
-        dx: (r.left + r.width / 2) - (sbR.left + sbR.width / 2),
-        dy: (r.top + r.height / 2) - (sbR.top + sbR.height / 2),
-        w: r.width, h: r.height,
-      };
-    });
-    const maxDy = parts.length ? parts[parts.length - 1].dy : 0;
-    // where the lockup rests: the real superbot slot, in overlay coords
-    const sbFx = sbR.left + sbR.width / 2 - ovR.left;
+    const items = [...rail.children].filter((el) => el !== sb);
+    const lastR = items.length ? items[items.length - 1].getBoundingClientRect() : sbR;
+    const span = (lastR.top + lastR.height / 2) - (sbR.top + sbR.height / 2);
+    const sbFx = sbR.left + sbR.width / 2 - ovR.left; // slot center, overlay px
     const sbFy = sbR.top + sbR.height / 2 - ovR.top;
-    // the assembly first stands centered in the arena, superbot tile on top
-    const homeY = acy() - maxDy / 2;
+    const homeY = acy() - span / 2; // the column, centered, superbot on top
     const k = sbR.width / (MARK * S);
 
-    // beat 3a — the mark shrinks to the tile size and rises to the column head
+    // stand the real rail in mid-stage: its superbot slot under the mark;
+    // every child waits hidden (the dividers have no hidden state of their
+    // own in the stylesheet, only the tiles do)
+    const rx = acx() - sbFx, ry = homeY - sbFy;
+    rail.style.transform = "translate(" + rx + "px," + ry + "px)";
+    items.forEach((el) => { el.style.opacity = "0"; });
+
+    // beat 3a — the tile shrinks to the rail's size and rises to the column head
     await anim(bloom, [
       { transform: "translate(0,0) scale(1)" },
       { transform: "translate(0," + (homeY - acy()) + "px) scale(" + k + ")" },
-    ], { duration: 620, easing: "cubic-bezier(.3,.7,.2,1)", fill: "forwards" });
+    ], { duration: 620, easing: GLIDE, fill: "forwards" });
     settle(bloom);
 
-    // beat 3b — the other app icons drop down from the mark, one at a time:
-    // clones of the real rail children, so the landing is pixel-identical
-    const clones = parts.map((p) => {
-      const c = p.el.cloneNode(true);
-      c.style.cssText += ";position:absolute;margin:0;opacity:0;will-change:transform,opacity;left:" + (acx() + p.dx - p.w / 2) + "px;top:" + (homeY + p.dy - p.h / 2) + "px;";
-      if (c.classList.contains("rail-div")) c.style.cssText += ";background:var(--line);border-radius:2px;";
-      overlay.appendChild(c);
-      return c;
-    });
-    await Promise.all(clones.map((c, i) => anim(c, [
+    // beat 3b — the rail's own app icons drop down from the tile, one at a time
+    await Promise.all(items.map((el, i) => anim(el, [
       { transform: "translateY(-34px)", opacity: 0 },
       { transform: "translateY(0)", opacity: 1 },
-    ], { duration: 480, delay: i * 90, easing: "cubic-bezier(.34,1.56,.64,1)", fill: "forwards" })));
-    clones.forEach(settle);
+    ], { duration: 480, delay: i * 90, easing: "cubic-bezier(.34,1.56,.64,1)", fill: "both" })));
+    items.forEach((el) => { settle(el); el.style.opacity = "1"; el.style.transform = ""; });
 
-    // beat 4 — ALL of it moves left as one: the lockup glides from its
-    // centered stand onto the real rail while the hub window materializes
-    // under it; the deltas are measured, so the landing is pixel-exact
+    // beat 4 — ALL of it moves left as one: the real rail glides home, the
+    // tile rides its slot, and the window's ground grows in around them
+    hub.style.transition = "background-color 520ms ease-out, border-color 520ms ease-out";
+    rail.style.transition = "background-color 520ms ease-out, border-right-color 520ms ease-out";
+    hub.style.background = "";
+    hub.style.borderColor = "";
+    rail.style.background = "";
+    rail.style.borderRightColor = "";
     const gx = sbFx - acx(), gy = sbFy - homeY;
-    hub.style.opacity = "1";
-    hub.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 500, easing: "ease-out" });
-    const from = "translate(0," + (homeY - acy()) + "px) scale(" + k + ")";
-    const to = "translate(" + gx + "px," + (homeY - acy() + gy) + "px) scale(" + k + ")";
     await Promise.all([
-      anim(bloom, [{ transform: from }, { transform: to }], { duration: 640, easing: "cubic-bezier(.3,.7,.2,1)", fill: "forwards" }),
-      ...clones.map((c) => anim(c, [
+      anim(rail, [
+        { transform: "translate(" + rx + "px," + ry + "px)" },
         { transform: "translate(0,0)" },
-        { transform: "translate(" + gx + "px," + gy + "px)" },
-      ], { duration: 640, easing: "cubic-bezier(.3,.7,.2,1)", fill: "forwards" })),
+      ], { duration: 640, easing: GLIDE, fill: "forwards" }),
+      anim(bloom, [
+        { transform: "translate(0," + (homeY - acy()) + "px) scale(" + k + ")" },
+        { transform: "translate(" + gx + "px," + (homeY - acy() + gy) + "px) scale(" + k + ")" },
+      ], { duration: 640, easing: GLIDE, fill: "forwards" }),
     ]);
-    // the lockup becomes the real rail: reveal the column underneath (the
-    // clones sit pixel-aligned on top) and dissolve the overlay copies
-    rail.style.opacity = "1";
+    // landed: the rail is at rest and the tile sits exactly on its slot —
+    // same artwork, same size, same pixel — so the slot takes over in the
+    // same frame with no fade
+    settle(rail);
+    rail.style.transform = "";
     sb.style.opacity = "1";
-    parts.forEach((p) => { p.el.style.opacity = "1"; });
-    await Promise.all([
-      anim(bloom, [{ opacity: 1 }, { opacity: 0 }], { duration: 260, fill: "forwards" }),
-      ...clones.map((c) => anim(c, [{ opacity: 1 }, { opacity: 0 }], { duration: 260, fill: "forwards" })),
-    ]);
-    // the frontend extends: the sidebar, chat lane and panel fade into view
+    bloom.remove();
+    hub.style.transition = "";
+    rail.style.transition = "";
+    // the frontend extends: the sidebar, chat lane and panel fade into view,
+    // and the selection pill takes its place beside the tile
+    sb.classList.add("sel");
     const rest = [...hub.querySelectorAll(".inner")].filter((el) => !el.classList.contains("rail"));
     await Promise.all(rest.map((el) => anim(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 380, fill: "forwards", easing: "ease-out" })));
     handoff();
