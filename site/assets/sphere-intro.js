@@ -14,6 +14,10 @@
 (() => {
   const stage = document.getElementById("stage");
   if (!stage) return;
+  // the choreography lives in the ARENA — the stage's content area right of
+  // the client rail — the same space hub-boot lays its story out in; centering
+  // on the full stage width is what dragged the sphere left
+  const arena = document.getElementById("arena") || stage;
 
   // reduced motion: skip the sphere, hand straight to hub-boot's own still
   // (?motion=1 overrides — headless Chrome reports reduce by default)
@@ -76,14 +80,14 @@
   overlay.className = "sphere-intro";
   overlay.setAttribute("aria-hidden", "true");
   overlay.style.cssText = "position:absolute;inset:0;overflow:hidden;z-index:30;pointer-events:none;";
-  stage.appendChild(overlay);
+  arena.appendChild(overlay);
 
   const holder = document.createElement("div");
   holder.style.cssText = "position:absolute;left:50%;top:50%;width:" + STAGE + "px;height:" + STAGE + "px;transform:translate(-50%,-50%);transform-style:preserve-3d;perspective:1100px;";
   overlay.appendChild(holder);
   let S = 1;
   const fit = () => {
-    const r = stage.getBoundingClientRect();
+    const r = arena.getBoundingClientRect();
     S = Math.min(1, Math.min(r.width, r.height) / (STAGE + 40));
     holder.style.transform = "translate(-50%,-50%) scale(" + S + ")";
   };
@@ -196,29 +200,46 @@
     });
   const px = (v) => v * S;
 
-  // beat 3 — the platform dropdown extends downward out of the centered mark
+  // beat 3 — the demo's own platform dropdown, replicated 1:1, extends
+  // downward out of the centered mark: icon + name + usage-burn % per row
+  // (mono, green <40 / orange 40-70 / red 70+), the current platform raised,
+  // "Add Platform" pinned under a separator
+  const PH_APPS = [
+    { name: "Superbot", src: "site/assets/brand/mark-clean.svg", five: null, on: true },
+    { name: "Claude", src: "site/assets/intro/claude.png", five: 62 },
+    { name: "Cursor", src: "site/assets/intro/cursor.png", five: 34 },
+    { name: "ChatGPT", src: "site/assets/intro/chatgpt.webp", five: 18 },
+    { name: "Gemini", src: "site/assets/intro/gemini-app-icon.png", five: 81 },
+    { name: "Grok", src: "site/assets/intro/grok.png", five: 47 },
+    { name: "Devin", src: "site/assets/intro/devin.png", five: 29 },
+    { name: "Hermes", src: "site/assets/intro/hermes.png", five: 55 },
+  ];
+  const uuColor = (p) => (p >= 70 ? "#e5636a" : p >= 40 ? "#e8b45a" : "#5fd08a");
   const showDropdown = () => {
     const pop = document.createElement("div");
-    pop.style.cssText = "position:absolute;left:50%;background:#14161c;border-radius:" + px(12) + "px;box-shadow:0 0 0 1px rgba(255,255,255,.08),0 18px 50px -12px rgba(0,0,0,.9);padding:" + px(6) + "px;transform-origin:top center;opacity:0;z-index:6;width:" + px(150) + "px;";
-    pop.innerHTML = ["ChatGPT", "Claude", "Gemini", "Cursor"].map((name, i) => {
-      const icon = ICONS.find((ic) => ic.name === name);
-      return '<div style="display:flex;align-items:center;gap:' + px(8) + 'px;padding:' + px(7) + 'px ' + px(9) + 'px;border-radius:' + px(8) + 'px;' + (i === 2 ? "background:rgba(255,255,255,.07);" : "") + '">' +
-        '<img src="' + icon.src + '" alt="" style="width:' + px(14) + 'px;height:' + px(14) + 'px;border-radius:' + px(4) + 'px;">' +
-        '<span style="font:' + px(11) + 'px system-ui;color:' + (i === 2 ? "#e8eaf0" : "#b9bec9") + ';">' + name + '</span>' +
-        (i === 2 ? '<svg viewBox="0 0 12 12" style="width:' + px(10) + 'px;height:' + px(10) + 'px;margin-left:auto"><path d="M2.4 6.4 4.8 8.8 9.6 3.6" stroke="#34e0c8" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>' : "") +
-        '</div>';
-    }).join("");
+    pop.style.cssText = "position:absolute;left:50%;width:" + px(212) + "px;background:#14161c;border:1px solid rgba(255,255,255,.12);border-radius:" + px(16) + "px;box-shadow:0 0 0 1px rgba(255,255,255,.06),0 " + px(30) + "px " + px(80) + "px " + -px(20) + " rgba(0,0,0,.95);padding:" + px(6) + "px;display:grid;gap:" + px(2) + "px;transform-origin:50% 0;box-sizing:border-box;z-index:6;";
+    pop.innerHTML = PH_APPS.map((a) =>
+      '<div style="display:flex;align-items:center;gap:' + px(9) + 'px;padding:' + px(7) + 'px ' + px(9) + 'px;border-radius:' + px(11) + 'px;' + (a.on ? "background:rgba(255,255,255,.08);" : "") + '">' +
+        '<img src="' + a.src + '" alt="" draggable="false" style="width:' + px(20) + 'px;height:' + px(20) + 'px;border-radius:' + px(6) + 'px;display:block;flex-shrink:0;object-fit:contain;">' +
+        '<span style="flex:1;font-size:' + px(13) + 'px;font-weight:600;color:#e6e8ee;font-family:system-ui,-apple-system,sans-serif;">' + a.name + '</span>' +
+        (a.five != null ? '<span style="font:600 ' + px(10.5) + 'px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;color:' + uuColor(a.five) + ';">' + a.five + '%</span>' : "") +
+      '</div>'
+    ).join("") +
+      '<div style="display:flex;align-items:center;gap:' + px(9) + 'px;padding:' + px(7) + 'px ' + px(9) + 'px;border-radius:0 0 ' + px(14) + "px " + px(14) + 'px;margin-top:' + px(4) + 'px;border-top:1px solid rgba(255,255,255,.08);color:#9b9b9b;">' +
+        '<svg viewBox="0 0 12 12" style="width:' + px(14) + 'px;height:' + px(14) + 'px;stroke:currentColor;fill:none;stroke-width:1.4;stroke-linecap:round;"><path d="M6 1.8v8.4M1.8 6h8.4"/></svg>' +
+        '<span style="flex:1;font-size:' + px(13) + 'px;font-weight:600;font-family:system-ui,-apple-system,sans-serif;">Add Platform</span>' +
+      '</div>';
     pop.style.top = cy() + (MARK * S) / 2 + px(14) + "px";
     overlay.appendChild(pop);
     const sequence = async () => {
       await anim(pop, [
-        { opacity: 0, transform: "translateX(-50%) translateY(" + -px(8) + ") scale(0.85)" },
-        { opacity: 1, transform: "translateX(-50%) translateY(0) scale(1)" },
-      ], { duration: 220, fill: "forwards", easing: "cubic-bezier(.34,1.3,.64,1)" });
+        { opacity: 0, transform: "translateX(-50%) scale(0.85)" },
+        { opacity: 1, transform: "translateX(-50%) scale(1)" },
+      ], { duration: 200, fill: "forwards", easing: "cubic-bezier(.34,1.3,.64,1)" });
       await new Promise((r) => setTimeout(r, 1200));
       await anim(pop, [
-        { opacity: 1, transform: "translateX(-50%) translateY(0) scale(1)" },
-        { opacity: 0, transform: "translateX(-50%) translateY(" + -px(6) + ") scale(0.9)" },
+        { opacity: 1, transform: "translateX(-50%) scale(1)" },
+        { opacity: 0, transform: "translateX(-50%) scale(0.9)" },
       ], { duration: 150, fill: "forwards" });
       pop.remove();
       moveLeft();
