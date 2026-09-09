@@ -263,6 +263,49 @@
       { transform: "translate(" + dx + "px," + dy + "px) scale(" + px(40) / (MARK * S) + ")" },
     ], { duration: 560, fill: "forwards", easing: "cubic-bezier(.3,.7,.2,1)" });
     move.finished.then(() => {
+      railBloom();
+    }).catch(() => { handoff(); dissolve(); });
+  };
+
+  // beat 5 — the dropdown effect: the crew rail assembles downward beneath
+  // the settled mark — separator first, then the 7 crew tiles and the +
+  // add-app tile springing in 44px apart (the bench's exact bloom)
+  const crewTile = (icon, sizeDesignPx) => {
+    const t = document.createElement("div");
+    const size = sizeDesignPx * S;
+    t.style.cssText = "position:absolute;border-radius:" + 10 * S + "px;background:#16161a;box-shadow:0 0 0 1px rgba(255,255,255,.07),0 8px 22px -8px rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;will-change:transform,opacity;opacity:0;width:" + size + "px;height:" + size + "px;";
+    const img = new Image();
+    img.src = icon.src;
+    img.alt = icon.name;
+    img.draggable = false;
+    img.style.cssText = "width:74%;height:74%;border-radius:" + 7 * S + "px;object-fit:contain;";
+    t.appendChild(img);
+    overlay.appendChild(t);
+    return t;
+  };
+  const railBloom = () => {
+    const colLeft = 14;               // crew column left, rest coords
+    const crewTop0 = 91 + 8;          // below the separator line
+    const railSep = document.createElement("div");
+    railSep.style.cssText = "position:absolute;left:" + colLeft * S + "px;top:" + 91 * S + "px;width:" + 32 * S + "px;height:2px;border-radius:1px;background:rgba(255,255,255,.16);opacity:0;";
+    overlay.appendChild(railSep);
+    const crew = [1, 2, 6, 5, 3, 4, 0].map((idx) => crewTile(ICONS[idx], 40)); // bench order: ChatGPT, Claude, Devin, Hermes, Gemini, Grok, Cursor
+    const plusTile = crewTile(ICONS[0], 40);
+    plusTile.innerHTML = "";
+    plusTile.style.opacity = "0";
+    plusTile.innerHTML = '<svg viewBox="0 0 12 12" style="width:' + 12 * S + 'px;height:' + 12 * S + 'px"><path d="M6 1.8v8.4M1.8 6h8.4" stroke="#9aa0aa" stroke-width="1.4" stroke-linecap="round" fill="none"/></svg>';
+    crew.push(plusTile);
+    crew.forEach((el, i) => {
+      el.style.left = colLeft * S + "px";
+      el.style.top = (crewTop0 + i * 44) * S + "px";
+    });
+    Promise.all([
+      ...crew.map((el, i) => anim(el, [
+        { transform: "translateY(" + -8 * S + "px) scale(0.2)", opacity: 0 },
+        { transform: "translateY(0) scale(1)", opacity: 1 },
+      ], { duration: 480, delay: i * 70, easing: "cubic-bezier(.34,1.56,.64,1)", fill: "forwards" })),
+      anim(railSep, [{ opacity: 0 }, { opacity: 1 }], { duration: 300, fill: "forwards" }),
+    ]).then(() => {
       handoff();
       dissolve();
     }).catch(() => { handoff(); dissolve(); });
@@ -272,5 +315,5 @@
 
   // watchdog: if any step stalls (WAAPI promises can sit unresolved under
   // throttling), force the handoff and dissolve so the stage is never covered
-  setTimeout(() => { handoff(); if (overlay.isConnected) dissolve(); }, startAt + 9500);
+  setTimeout(() => { handoff(); if (overlay.isConnected) dissolve(); }, startAt + 10500);
 })();
