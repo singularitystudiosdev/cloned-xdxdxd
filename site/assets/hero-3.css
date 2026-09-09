@@ -32,13 +32,22 @@
    static ring tile (a static surface, so the ring is right here); it scales
    with the headline through the h1's font size. Below the tablet cut the tile
    sits above the words. */
-/* the lockup's tunables are custom properties so the headline editor
-   (site/assets/hero-edit.js, loaded on ?edit) can drive them live and copy
-   the values back here (owner, 2026-09-09): the mark 25% bigger than the
-   3.4em it was (4.25em), the headline at .85 of the h1 token, nudged by dx/dy */
-.sb-lockup { --hero-mark: 4.25em; --hero-h1-scale: .85; --hero-h1-lh: 1.1; --hero-gap: var(--sp-5); --hero-h1-dx: 0px; --hero-h1-dy: 0px; }
+/* the BRAND lockup, near 1:1 to the reference card (owner, 2026-09-09): the
+   big mark on the left, beside it a left-aligned block — the bold
+   "superbot.gg" wordmark over one small grey tagline — vertically centered
+   on the mark. Proportions measured off the reference (1200×630: mark 420
+   tall, wordmark ~110px, tagline ~24px, gap ~15px): wordmark .26 of the mark,
+   tagline .058, gap .035. The mark is 6.4 headline-ems (~336px at the 52px
+   token), which puts the mark at the same third of the copy column the
+   reference gives it. The tunables are custom properties so the editor
+   (site/assets/hero-edit-2.js, loaded on ?edit) can drive them live and copy
+   the values back here. */
+.sb-lockup { --hero-mark: 6.4em; --hero-h1-scale: 1; --hero-tag-scale: 1; --hero-gap: 12px; --hero-h1-dx: 0px; --hero-h1-dy: 0px; }
 .sb-lockup { display: flex; align-items: center; justify-content: center; gap: var(--hero-gap); }
-.sb-lockup h1 { transform: translate(var(--hero-h1-dx), var(--hero-h1-dy)); line-height: var(--hero-h1-lh); }
+.sb-words { display: flex; flex-direction: column; align-items: flex-start; text-align: left; gap: .32em; font-size: var(--fs-h1); transform: translate(var(--hero-h1-dx), var(--hero-h1-dy)); }
+.sb-lockup .sb-words h1 { margin: 0; font-size: calc(1.66em * var(--hero-h1-scale)); line-height: 1; letter-spacing: -.025em; font-weight: 800; } /* .sb-lockup prefix out-weighs `.hero h1` below, which would otherwise reset the size */
+.sb-lockup .sb-words .tag { margin: 0; font-size: calc(.37em * var(--hero-tag-scale)); line-height: 1.2; color: var(--muted); font-weight: 500; }
+@media (max-width: 820px) { .sb-words { align-items: center; text-align: center; } }
 /* the mark alone, bigger than the tile was (3.4 headline-ems), with the kit's
    duotone offset as a slow idle: the teal ghost up-left and the magenta ghost
    down-right breathe between the glitch ladder's whisper (0.5 units of the
@@ -47,14 +56,14 @@
    (duostorm.css --duo-offset*). SVG user units, so it scales with the mark.
    Reduced motion rests both ghosts at the base offset: the glitch shows,
    nothing moves. */
-.sb-glitch { flex: none; width: var(--hero-mark, 4.25em); height: var(--hero-mark, 4.25em); font-size: var(--fs-h1); display: block; overflow: visible; }
+.sb-glitch { flex: none; width: var(--hero-mark, 6.4em); height: var(--hero-mark, 6.4em); font-size: var(--fs-h1); display: block; overflow: visible; }
 .sb-glitch-a { transform: translate(-1.2px, -1.2px); animation: sb-glitch-a 7s ease-in-out infinite; }
 .sb-glitch-b { transform: translate(1.2px, 1.2px); animation: sb-glitch-b 11s ease-in-out infinite; }
 @keyframes sb-glitch-a { 0%, 100% { transform: translate(-1.2px, -1.2px); } 38% { transform: translate(-0.5px, -0.6px); } 41% { transform: translate(-2.2px, -1px); } 44% { transform: translate(-1.2px, -1.2px); } 72% { transform: translate(-0.7px, -0.5px); } }
 @keyframes sb-glitch-b { 0%, 100% { transform: translate(1.2px, 1.2px); } 27% { transform: translate(0.6px, 0.5px); } 61% { transform: translate(1.2px, 1.2px); } 63% { transform: translate(2px, 0.6px); } 66% { transform: translate(1.2px, 1.2px); } 84% { transform: translate(0.5px, 0.8px); } }
 @media (prefers-reduced-motion: reduce) { .sb-glitch-a, .sb-glitch-b { animation: none; } }
 @media (max-width: 820px) { .sb-lockup { flex-direction: column; gap: var(--sp-4); } .sb-glitch { width: 104px; height: 104px; } }
-.hero h1 { font-size: calc(var(--fs-h1) * var(--hero-h1-scale, 1)); line-height: 1.1; }
+.hero h1 { font-size: var(--fs-h1); line-height: 1.1; }
 .hero .sub {
   margin: var(--sp-4) auto 0; max-width: var(--measure); color: var(--muted);
   font-size: var(--fs-base); line-height: var(--lh-base);

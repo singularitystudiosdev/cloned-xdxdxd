@@ -9,7 +9,7 @@
 <title>superbot.gg · the agent to manage your agents</title>
 <link rel="icon" href="site/assets/favicon.svg" type="image/svg+xml"/>
 <link rel="stylesheet" href="site/assets/site.css"/>
-<link rel="stylesheet" href="site/assets/hero-2.css"/>
+<link rel="stylesheet" href="site/assets/hero-3.css"/>
 <link rel="stylesheet" href="site/assets/hub-boot-3.css"/>
 <meta name="description" content="a tiny helper that lives on your machines 24/7: your AI apps on the subscriptions you already pay for, kept fast, kept tidy, and the annoying stuff fixed before you see it."/>
 <meta property="og:type" content="website"/>
@@ -50,7 +50,13 @@
             <rect class="sb-glitch-b" x="-30" y="-30" width="160" height="160" fill="#c026d3" mask="url(#sb-lockup-face)"/>
             <rect x="-30" y="-30" width="160" height="160" fill="#ffffff" mask="url(#sb-lockup-face)"/>
           </svg>
-          <h1>the agent<br/>to manage<br/>your agents.</h1>
+          <!-- the brand lockup's words (owner, 2026-09-09, near 1:1 to the
+               reference card): the wordmark over one small grey tagline,
+               left-aligned, centered on the mark. Tune with ?edit. -->
+          <div class="sb-words">
+            <h1>superbot.gg</h1>
+            <p class="tag">the agent to manage your agents.</p>
+          </div>
         </div>
       </div>
 
@@ -425,8 +431,8 @@
 
   // the headline editor: open the page with ?edit to tune the hero lockup
   // (headline text, size, position, mark size, gap) live, then Copy CSS
-  // and paste the block into hero-2.css / the h1 in this file
-  if (new URLSearchParams(location.search).has('edit')) import('./site/assets/hero-edit.js');
+  // and paste the block into hero-3.css / the .sb-words block in this file
+  if (new URLSearchParams(location.search).has('edit')) import('./site/assets/hero-edit-2.js');
 </script>
 </body>
 </html>
