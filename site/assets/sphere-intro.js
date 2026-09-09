@@ -1,22 +1,18 @@
-// sphere-intro: the hero's opening — four clean beats, adapted from the
-// sphere-collapse bench's desktop card (hero-loading-animations.html) into
-// this site's own stage:
+// sphere-intro: the hero's opening — the sphere-collapse bench's desktop
+// intro (hero-loading-animations.html), adapted to this site's stage:
 //   1. 17 app icons pop in one at a time on a fibonacci sphere and spin up
-//      exponentially (0.35 → 21 rad/s), DEAD CENTER in the stage
+//      exponentially (0.35 → 21 rad/s), dead center in the arena
 //   2. they converge and merge (the bench's 450ms accelerating window) and
 //      the superbot mascot mark flips and grows (fv-flip-icon-grow, exact)
-//   3. the platform dropdown extends downward out of the mark, holds, closes
-//   4. the mark glides LEFT to the bench's rail-button rest position, and only
-//      then hub-boot's story starts and the overlay dissolves — one beat at a
-//      time, nothing overlapping
-// hub-boot resumes at its 12.0s mark — past the boot log AND past the chips
-// segment — typing "all yours now." into a clean margin.
+//   3. the mark glides LEFT and settles as the rail's home button
+//   4. the crew ICON rail assembles downward beneath it — separator, seven
+//      tiles and the + add-app tile springing in 44px apart — then hub-boot's
+//      story takes over as the overlay dissolves (margin text is hidden
+//      entirely; there is no transcript in this hero).
+// No text dropdowns, no overlapping layers: one beat at a time.
 (() => {
   const stage = document.getElementById("stage");
   if (!stage) return;
-  // the choreography lives in the ARENA — the stage's content area right of
-  // the client rail — the same space hub-boot lays its story out in; centering
-  // on the full stage width is what dragged the sphere left
   const arena = document.getElementById("arena") || stage;
 
   // reduced motion: skip the sphere, hand straight to hub-boot's own still
@@ -24,7 +20,7 @@
   const motionForced = new URLSearchParams(location.search).get("motion") === "1";
   if (!motionForced && matchMedia("(prefers-reduced-motion: reduce)").matches) {
     window.__hubBootStartAt = 0;
-    import("./hub-boot.js");
+    import("./hub-boot.js?v=8");
     return;
   }
 
@@ -70,41 +66,28 @@
   };
 
   // the hub-boot story picks up here once the sphere hands off: past the
-  // boot log (0-2.9) AND past the app/rule chips segment (5.0-12.15, removed)
-  // — the story resumes typing "all yours now." at 12.15
+  // boot log (0-2.9) AND past the chips segment (5.0-12.15, removed)
   const HANDOFF_AT = 12.0;
 
-  // overlay fills the stage; the choreography space is dead center via
-  // translate(-50%,-50%) — no offset math, the sphere cannot drift
+  // overlay fills the ARENA — its center is the choreography's center
   const overlay = document.createElement("div");
   overlay.className = "sphere-intro";
   overlay.setAttribute("aria-hidden", "true");
   overlay.style.cssText = "position:absolute;inset:0;overflow:hidden;z-index:30;pointer-events:none;";
-  // mount in the STAGE — hub-boot's render wipes the arena's contents every
-  // frame, which erased the whole intro when the overlay lived there — but
-  // anchor the choreography at the ARENA's center (content area, right of the
-  // client rail), which is what "centered" means here
-  stage.appendChild(overlay);
+  arena.appendChild(overlay);
+
+  let S = 1;
+  const fit = () => {
+    const r = arena.getBoundingClientRect();
+    S = Math.min(1, Math.min(r.width, r.height) / (STAGE + 40));
+    holder.style.transform = "translate(-50%,-50%) scale(" + S + ")";
+  };
 
   const holder = document.createElement("div");
   holder.style.cssText = "position:absolute;left:50%;top:50%;width:" + STAGE + "px;height:" + STAGE + "px;transform:translate(-50%,-50%);transform-style:preserve-3d;perspective:1100px;";
   overlay.appendChild(holder);
-  let S = 1;
-  const fit = () => {
-    const sr = stage.getBoundingClientRect();
-    const ar = arena.getBoundingClientRect();
-    S = Math.min(1, Math.min(ar.width, ar.height) / (STAGE + 40));
-    // the holder's center sits at the arena's center, in overlay px
-    holder.style.left = ((ar.left - sr.left) + ar.width / 2) + "px";
-    holder.style.top = ((ar.top - sr.top) + ar.height / 2) + "px";
-    holder.style.transform = "translate(-50%,-50%) scale(" + S + ")";
-  };
   fit();
   addEventListener("resize", fit);
-
-  // the arena's center in overlay px — every centered element anchors here
-  const acx = () => holder.offsetLeft;
-  const acy = () => holder.offsetTop;
 
   // the merge target — the site's own mascot mark on the dark tile, with the
   // same teal/magenta chromatic fringe the hero's big mascot carries
@@ -121,12 +104,6 @@
   bloom.appendChild(bloomTile);
   bloom.appendChild(mark);
   overlay.appendChild(bloom);
-  const placeBloom = () => {
-    bloom.style.left = acx() + "px";
-    bloom.style.top = acy() + "px";
-  };
-  placeBloom();
-  addEventListener("resize", placeBloom);
 
   const FIB = fibDirs(ICONS.length);
   const tiles = ICONS.map((icon) => {
@@ -146,14 +123,13 @@
     el.style.transform = "translate3d(" + (C - TILE / 2 + x) + "px," + (C - TILE / 2 + y) + "px," + z + "px)";
   };
 
-  // the handoff: hub-boot starts playing beneath the overlay. Idempotent —
-  // called at the flip and by the watchdog.
+  // the handoff: hub-boot starts playing beneath the overlay. Idempotent.
   let handedOff = false;
   const handoff = () => {
     if (handedOff) return;
     handedOff = true;
     window.__hubBootStartAt = HANDOFF_AT;
-    import("./hub-boot.js");
+    import("./hub-boot.js?v=8");
   };
 
   // dissolve the overlay, revealing the story already running underneath
@@ -206,7 +182,7 @@
     flip.finished.then(() => {
       try { flip.commitStyles(); } catch (e) {}
       flip.cancel();
-      showDropdown();
+      moveLeft();
     }).catch((e) => {
       if (!e || e.name !== "AbortError") console.error("[sphere-intro] flip failed:", e);
     });
@@ -218,74 +194,21 @@
     });
   const px = (v) => v * S;
 
-  // beat 3 — the demo's own platform dropdown, replicated 1:1, extends
-  // downward out of the centered mark: icon + name + usage-burn % per row
-  // (mono, green <40 / orange 40-70 / red 70+), the current platform raised,
-  // "Add Platform" pinned under a separator
-  const PH_APPS = [
-    { name: "Superbot", src: "site/assets/brand/mark-clean.svg", five: null, on: true },
-    { name: "Claude", src: "site/assets/intro/claude.png", five: 62 },
-    { name: "Cursor", src: "site/assets/intro/cursor.png", five: 34 },
-    { name: "ChatGPT", src: "site/assets/intro/chatgpt.webp", five: 18 },
-    { name: "Gemini", src: "site/assets/intro/gemini-app-icon.png", five: 81 },
-    { name: "Grok", src: "site/assets/intro/grok.png", five: 47 },
-    { name: "Devin", src: "site/assets/intro/devin.png", five: 29 },
-    { name: "Hermes", src: "site/assets/intro/hermes.png", five: 55 },
-  ];
-  const uuColor = (p) => (p >= 70 ? "#e5636a" : p >= 40 ? "#e8b45a" : "#5fd08a");
-  const showDropdown = () => {
-    const pop = document.createElement("div");
-    pop.style.cssText = "position:absolute;width:" + px(212) + "px;background:#14161c;border:1px solid rgba(255,255,255,.12);border-radius:" + px(16) + "px;box-shadow:0 0 0 1px rgba(255,255,255,.06),0 " + px(30) + "px " + px(80) + "px " + -px(20) + " rgba(0,0,0,.95);padding:" + px(6) + "px;display:grid;gap:" + px(2) + "px;transform-origin:50% 0;box-sizing:border-box;z-index:6;";
-    pop.innerHTML = PH_APPS.map((a) =>
-      '<div style="display:flex;align-items:center;gap:' + px(9) + 'px;padding:' + px(7) + 'px ' + px(9) + 'px;border-radius:' + px(11) + 'px;' + (a.on ? "background:rgba(255,255,255,.08);" : "") + '">' +
-        '<img src="' + a.src + '" alt="" draggable="false" style="width:' + px(20) + 'px;height:' + px(20) + 'px;border-radius:' + px(6) + 'px;display:block;flex-shrink:0;object-fit:contain;">' +
-        '<span style="flex:1;font-size:' + px(13) + 'px;font-weight:600;color:#e6e8ee;font-family:system-ui,-apple-system,sans-serif;">' + a.name + '</span>' +
-        (a.five != null ? '<span style="font:600 ' + px(10.5) + 'px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;color:' + uuColor(a.five) + ';">' + a.five + '%</span>' : "") +
-      '</div>'
-    ).join("") +
-      '<div style="display:flex;align-items:center;gap:' + px(9) + 'px;padding:' + px(7) + 'px ' + px(9) + 'px;border-radius:0 0 ' + px(14) + "px " + px(14) + 'px;margin-top:' + px(4) + 'px;border-top:1px solid rgba(255,255,255,.08);color:#9b9b9b;">' +
-        '<svg viewBox="0 0 12 12" style="width:' + px(14) + 'px;height:' + px(14) + 'px;stroke:currentColor;fill:none;stroke-width:1.4;stroke-linecap:round;"><path d="M6 1.8v8.4M1.8 6h8.4"/></svg>' +
-        '<span style="flex:1;font-size:' + px(13) + 'px;font-weight:600;font-family:system-ui,-apple-system,sans-serif;">Add Platform</span>' +
-      '</div>';
-    pop.style.left = (acx() - px(106)) + "px"; // px(212) / 2
-    pop.style.top = acy() + (MARK * S) / 2 + px(14) + "px";
-    overlay.appendChild(pop);
-    const sequence = async () => {
-      await anim(pop, [
-        { opacity: 0, transform: "translateX(-50%) scale(0.85)" },
-        { opacity: 1, transform: "translateX(-50%) scale(1)" },
-      ], { duration: 200, fill: "forwards", easing: "cubic-bezier(.34,1.3,.64,1)" });
-      await new Promise((r) => setTimeout(r, 1200));
-      await anim(pop, [
-        { opacity: 1, transform: "translateX(-50%) scale(1)" },
-        { opacity: 0, transform: "translateX(-50%) scale(0.9)" },
-      ], { duration: 150, fill: "forwards" });
-      pop.remove();
-      moveLeft();
-    };
-    sequence();
-  };
-
-  // center of the arena in overlay px (the sphere's merge point)
-
-  // beat 4 — the mark moves left: it glides to the bench's rail-button rest
-  // (40px, left 14, center 63px from the top) as one clean final beat, and
-  // only THEN hub-boot starts and the overlay dissolves — nothing overlaps
+  // beat 3 — the mark glides LEFT to the bench's rail-button rest (40px,
+  // left 14, center 63px from the top)
   const moveLeft = () => {
-    const restCx = px(14 + 20), restCy = px(63);
-    const dx = restCx - acx(), dy = restCy - acy();
+    const dx = px(14 + 20) - overlay.clientWidth / 2;
+    const dy = px(63) - overlay.clientHeight / 2;
     const move = bloom.animate([
       { transform: "scale(1)" },
       { transform: "translate(" + dx + "px," + dy + "px) scale(" + px(40) / (MARK * S) + ")" },
     ], { duration: 560, fill: "forwards", easing: "cubic-bezier(.3,.7,.2,1)" });
-    move.finished.then(() => {
-      railBloom();
-    }).catch(() => { handoff(); dissolve(); });
+    move.finished.then(() => railBloom()).catch(() => railBloom());
   };
 
-  // beat 5 — the dropdown effect: the crew rail assembles downward beneath
-  // the settled mark — separator first, then the 7 crew tiles and the +
-  // add-app tile springing in 44px apart (the bench's exact bloom)
+  // beat 4 — the ICON rail assembles downward beneath the settled mark:
+  // separator first, then the 7 crew tiles and the + add-app tile (the
+  // bench's exact bloom — icons only, no text)
   const crewTile = (icon, sizeDesignPx) => {
     const t = document.createElement("div");
     const size = sizeDesignPx * S;
@@ -305,7 +228,7 @@
     const railSep = document.createElement("div");
     railSep.style.cssText = "position:absolute;left:" + colLeft * S + "px;top:" + 91 * S + "px;width:" + 32 * S + "px;height:2px;border-radius:1px;background:rgba(255,255,255,.16);opacity:0;";
     overlay.appendChild(railSep);
-    const crew = [1, 2, 6, 5, 3, 4, 0].map((idx) => crewTile(ICONS[idx], 40)); // bench order: ChatGPT, Claude, Devin, Hermes, Gemini, Grok, Cursor
+    const crew = [1, 2, 6, 5, 3, 4, 0].map((idx) => crewTile(ICONS[idx], 40)); // bench order
     const plusTile = crewTile(ICONS[0], 40);
     plusTile.innerHTML = "";
     plusTile.style.opacity = "0";

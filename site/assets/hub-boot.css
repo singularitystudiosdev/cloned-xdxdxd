@@ -496,3 +496,8 @@
   .stage.still .hub, .stage.still .hub .inner, .stage.still .rail-item, .stage.still .msg, .stage.still .panel .pc, .stage.still .phone, .stage.still .phone-label, .stage.still .phone .sync { opacity: 1; transform: none; }
   .stage.still .arena > .mascot, .stage.still .arena > .sb-keys, .stage.still .bubble, .stage.still .scan, .stage.still .item, .stage.still .badge, .stage.still .beam { display: none; }
 }
+
+/* sphere-intro: this hero has no transcript — hide the terminal margin log
+   and the speech bubble hub-boot writes into (icons-only intro). */
+.margin .ln { display: none !important; } /* the transcript text */
+.bubble { display: none !important; } /* the speech bubble */
