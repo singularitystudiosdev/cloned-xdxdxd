@@ -1,12 +1,13 @@
-// sphere-intro: the hero's new OPENING segment. 17 app icons pop in one at a
-// time on a fibonacci sphere, spin up exponentially, converge and merge into
-// the superbot mascot mark, the mark flips and grows (the bench's
-// fv-flip-icon-grow curve, exact), then it expands and dissolves — the
-// extension — handing the stage to hub-boot.js, which picks the 32s story up
-// at its 2.9s mark (face just formed) with the boot-log opening replaced.
-// Curves ported from the sphere-collapse bench (hero-loading-animations.html):
-// the same pop clock, the same exponential spin-up (0.35 → 21 rad/s), the same
-// 450ms accelerating merge, the same 920ms flip+grow.
+// sphere-intro: the hero's new OPENING segment — the bench's DESKTOP-card
+// choreography (hero-loading-animations.html), not the phone variant: the
+// 460px coordinate space rides the card's center column, tiles pop FULL SIZE
+// from the first frame, depth (z+190)/380, blur pow(t,2)*3.6 + depth falloff.
+// 17 app icons pop in one at a time on a fibonacci sphere, spin up
+// exponentially (0.35 → 21 rad/s), converge and merge over the same 450ms
+// accelerating window, then the superbot mascot mark flips and grows
+// (fv-flip-icon-grow, exact). At the merge moment hub-boot.js starts playing
+// UNDER the overlay (from its 2.9s mark), so when the mark expands and the
+// overlay dissolves the story is already alive — the transition is seamless.
 (() => {
   const stage = document.getElementById("stage");
   if (!stage) return;
@@ -38,6 +39,7 @@
     { name: "Warp", src: "site/assets/intro/warp.png" },
   ];
 
+  // the bench's fixed coordinate space: 460px, sphere R=175, 54px tiles
   const STAGE = 460, C = STAGE / 2, R = 175, TILE = 54;
   const lerp = (a, b, t) => a + (b - a) * t;
   const clamp01 = (t) => Math.min(1, Math.max(0, t));
@@ -59,7 +61,6 @@
     const x = clamp01(tMs / MERGE_T);
     return OMEGA0 * Math.exp(Math.log(OMEGA_MAX / OMEGA0) * Math.pow(x, 1.55));
   };
-  const easeOutBack = (t) => { const c = 1.70158; const x = clamp01(t); return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
 
   // the hub-boot story picks up here once the sphere hands off (its face is
   // just formed; the boot-log opening this intro replaces sat before it)
@@ -72,13 +73,15 @@
   overlay.style.cssText = "position:absolute;inset:0;overflow:hidden;z-index:30;pointer-events:none;";
   stage.appendChild(overlay);
 
-  // fixed 460px choreography space, scaled to fit the stage
+  // fixed 460px choreography space, centered in the stage, NEVER upscaled —
+  // the sphere (R 175 + half a 54px tile = 202px) must stay inside its 230px
+  // half-space so nothing rides out of frame
   const holder = document.createElement("div");
   holder.style.cssText = "position:absolute;left:50%;top:50%;width:" + STAGE + "px;height:" + STAGE + "px;transform:translate(-50%,-50%);transform-style:preserve-3d;perspective:1100px;";
   overlay.appendChild(holder);
   const fit = () => {
     const r = stage.getBoundingClientRect();
-    const s = Math.max(0.3, Math.min(r.width, r.height) / (STAGE + 40));
+    const s = Math.min(1, Math.min(r.width, r.height) / (STAGE + 40));
     holder.style.transform = "translate(-50%,-50%) scale(" + s + ")";
   };
   fit();
@@ -113,19 +116,22 @@
     return t;
   });
 
-  const place3 = (el, x, y, z, s) => {
-    const size = TILE * s;
-    el.style.transform = "translate3d(" + (C - size / 2 + x) + "px," + (C - size / 2 + y) + "px," + z + "px) scale(" + s + ")";
+  const place3 = (el, x, y, z) => {
+    el.style.transform = "translate3d(" + (C - TILE / 2 + x) + "px," + (C - TILE / 2 + y) + "px," + z + "px)";
   };
 
-  // the handoff: hand the stage to hub-boot mid-story, then dissolve. Idempotent —
-  // the watchdog calls it too.
+  // the handoff: hub-boot starts playing beneath the overlay. Idempotent —
+  // called at the merge moment and by the watchdog.
   let handedOff = false;
   const handoff = () => {
     if (handedOff) return;
     handedOff = true;
     window.__hubBootStartAt = HANDOFF_AT;
     import("./hub-boot.js");
+  };
+
+  // dissolve the overlay, revealing the story already running underneath
+  const dissolve = () => {
     overlay.style.transition = "opacity 300ms ease";
     overlay.style.opacity = "0";
     setTimeout(() => overlay.remove(), 320);
@@ -136,38 +142,43 @@
   // lands just after the merge, mid-flip) — the bench's ?t= pattern
   const startAt = Math.max(0, parseInt(new URLSearchParams(location.search).get("intro") || "0", 10) || 0);
   let clock = startAt;
+  const popped = new Array(ICONS.length).fill(false);
   const frame = (ts) => {
     if (last == null) last = ts;
     const dMs = Math.min(50, ts - last);
     last = ts;
     clock += dMs;
     ang += (dMs / 1000) * omegaAt(Math.min(clock, MERGE_T));
-    tiles.forEach((t, i) => {
-      const pop = clamp01((clock - popAt(i)) / 240);
-      if (pop <= 0) { t.style.opacity = "0"; return; }
+
+    // sequential pop-in, one at a time, FULL SIZE from the first frame
+    for (let i = 0; i < ICONS.length; i++) {
+      if (clock >= popAt(i) && !popped[i]) { popped[i] = true; tiles[i].style.opacity = "1"; }
+    }
+
+    for (let i = 0; i < ICONS.length; i++) {
+      if (!popped[i]) continue;
       const v = rotY3(FIB[i], ang);
-      let x, y, z;
-      if (clock < MERGE_T - 450) {
-        x = v.x * R; y = v.y * R; z = v.z * R;
-      } else {
-        const mergeT = Math.pow(clamp01((clock - (MERGE_T - 450)) / 450), 1.7);
-        x = lerp(v.x * R, 0, mergeT); y = lerp(v.y * R, 0, mergeT); z = v.z * lerp(R, 10, mergeT);
-      }
-      const depth = (v.z + 1) / 2;
+      // fast convergence: 450ms, accelerating INTO the center
+      const mergeT = Math.pow(clamp01((clock - (MERGE_T - 450)) / 450), 1.7);
+      const x = lerp(v.x * R, 0, mergeT), y = lerp(v.y * R, 0, mergeT), z = v.z * lerp(R, 10, mergeT);
+      const depth = (z + 190) / 380;
+      place3(tiles[i], x, y, z);
+      tiles[i].style.opacity = String(Math.min(1, (0.16 + 0.84 * depth) * (1 - clamp01((clock - MERGE_T) / 220))));
+      // motion blur stays off for most of the ramp and only smears in the last stretch
       const blurT = clamp01((clock - MERGE_T * 0.62) / (MERGE_T * 0.38));
-      t.style.opacity = String(Math.min(1, (0.16 + 0.84 * depth) * (1 - clamp01((clock - MERGE_T) / 220))) * pop);
-      t.style.filter = "blur(" + (blurT * 4).toFixed(2) + "px)";
-      place3(t, x, y, z, 0.6 + 0.4 * easeOutBack(pop));
-    });
-    if (phase === "run" && clock >= MERGE_T) { phase = "finisher"; runFinisher(); }
-    if (phase === "run") raf = requestAnimationFrame(frame);
-    else if (clock >= MERGE_T + 240) {
+      const blur = Math.pow(blurT, 2) * 3.6 + (depth < 0.5 ? (0.5 - depth) * 3 : 0);
+      tiles[i].style.filter = blur > 0.05 ? "blur(" + blur.toFixed(2) + "px)" : "none";
+    }
+    if ((phase === "finisher" || phase === "done") && clock >= MERGE_T + 220) {
       tiles.forEach((t) => { t.style.visibility = "hidden"; });
-    } else raf = requestAnimationFrame(frame);
+    }
+    if (phase === "run" && clock >= MERGE_T) { phase = "finisher"; runFinisher(); }
+    if (phase === "run" || (phase === "finisher" && clock < MERGE_T + 220)) raf = requestAnimationFrame(frame);
   };
 
   // fv-flip-icon-grow, exact: 0→0.76 flip 180°→0° + grow + brighten, then settle
   const runFinisher = () => {
+    handoff(); // the story starts beneath the overlay NOW — seamless reveal later
     bloom.style.opacity = "1";
     const flip = bloom.animate([
       {
@@ -192,20 +203,21 @@
     });
   };
 
-  // the extension: the mark expands outward and the overlay dissolves, handing
-  // the stage to hub-boot's story (the demo's "expands into the chat")
+  // the extension: the mark expands outward and the overlay dissolves —
+  // hub-boot's story is already alive underneath (the demo's "expands into
+  // the chat", here into the hub story)
   const extension = () => {
     const grow = bloom.animate([
       { transform: "scale(1)", opacity: 1, easing: "cubic-bezier(.3,.7,.2,1)" },
       { transform: "scale(2.6)", opacity: 0 },
     ], { duration: 620, fill: "forwards" });
-    grow.finished.then(handoff).catch(handoff);
+    grow.finished.then(dissolve).catch(dissolve);
   };
 
   raf = requestAnimationFrame(frame);
 
   // watchdog: if the finisher chain ever stalls (WAAPI promises can sit
-  // unresolved under throttling), force the handoff so the stage is never
-  // left covered
-  setTimeout(handoff, startAt + MERGE_T + 920 + 620 + 500);
+  // unresolved under throttling), force the handoff and dissolve so the
+  // stage is never left covered
+  setTimeout(() => { handoff(); if (overlay.isConnected) dissolve(); }, startAt + MERGE_T + 920 + 620 + 500);
 })();
