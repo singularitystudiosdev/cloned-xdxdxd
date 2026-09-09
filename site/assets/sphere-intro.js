@@ -6,8 +6,9 @@
 //   2. they converge and merge (the bench's 450ms accelerating window) and
 //      the superbot mascot mark flips and grows (fv-flip-icon-grow, exact)
 //   3. the platform dropdown extends downward out of the mark, holds, closes
-//   4. the mark extends (scales up, fades) and the overlay dissolves into
-//      hub-boot's story, imported at the flip so it is already alive underneath
+//   4. the mark glides LEFT to the bench's rail-button rest position, and only
+//      then hub-boot's story starts and the overlay dissolves — one beat at a
+//      time, nothing overlapping
 // hub-boot resumes at its 12.0s mark — past the boot log AND past the chips
 // segment — typing "all yours now." into a clean margin.
 (() => {
@@ -174,7 +175,6 @@
 
   // beat 2 — fv-flip-icon-grow, exact: 0→0.76 flip 180°→0° + grow + brighten
   const runFinisher = () => {
-    handoff(); // the story starts beneath the overlay NOW — seamless reveal later
     bloom.style.opacity = "1";
     const flip = bloom.animate([
       { transform: "perspective(900px) rotateY(180deg) scale(" + (TILE / 250) + ")", filter: "brightness(0.5)", easing: "cubic-bezier(.3,.85,.3,1.04)" },
@@ -221,7 +221,7 @@
         { opacity: 0, transform: "translateX(-50%) translateY(" + -px(6) + ") scale(0.9)" },
       ], { duration: 150, fill: "forwards" });
       pop.remove();
-      extendFull();
+      moveLeft();
     };
     sequence();
   };
@@ -230,19 +230,26 @@
   // is translate-centered, so the overlay's own midpoint IS the mark's center
   const cy = () => overlay.getBoundingClientRect().height / 2;
 
-  // beat 4 — the mark extends outward (the bench's "expands into the chat",
-  // here into the full hub) and the overlay dissolves into hub-boot's story
-  const extendFull = () => {
-    const grow = bloom.animate([
-      { transform: "scale(1)", opacity: 1, easing: "cubic-bezier(.3,.7,.2,1)" },
-      { transform: "scale(2.6)", opacity: 0 },
-    ], { duration: 620, fill: "forwards" });
-    grow.finished.then(dissolve).catch(dissolve);
+  // beat 4 — the mark moves left: it glides to the bench's rail-button rest
+  // (40px, left 14, center 63px from the top) as one clean final beat, and
+  // only THEN hub-boot starts and the overlay dissolves — nothing overlaps
+  const moveLeft = () => {
+    const r = overlay.getBoundingClientRect();
+    const restCx = px(14 + 20), restCy = px(63);
+    const dx = restCx - r.width / 2, dy = restCy - r.height / 2;
+    const move = bloom.animate([
+      { transform: "scale(1)" },
+      { transform: "translate(" + dx + "px," + dy + "px) scale(" + px(40) / (MARK * S) + ")" },
+    ], { duration: 560, fill: "forwards", easing: "cubic-bezier(.3,.7,.2,1)" });
+    move.finished.then(() => {
+      handoff();
+      dissolve();
+    }).catch(() => { handoff(); dissolve(); });
   };
 
   raf = requestAnimationFrame(frame);
 
   // watchdog: if any step stalls (WAAPI promises can sit unresolved under
   // throttling), force the handoff and dissolve so the stage is never covered
-  setTimeout(() => { handoff(); if (overlay.isConnected) dissolve(); }, startAt + 10500);
+  setTimeout(() => { handoff(); if (overlay.isConnected) dissolve(); }, startAt + 9500);
 })();
