@@ -52,6 +52,15 @@
   // own box is far larger than what's visible, so its geometric center lands
   // off-screen; one shared, true coordinate space for every beat
   const body = stage.querySelector(".body") || stage;
+  // the transcript margin column is dead weight (hub-boot's story is unused):
+  // collapse it from the very first frame so the arena — and the whole hub —
+  // own the full stage width, with no empty panel on the left
+  body.style.transition = "none";
+  body.style.gridTemplateColumns = "0% minmax(0, 1fr)";
+  // hide the margin in place — display:none would drop it from the grid flow
+  // and auto-place the ARENA into the 0% column, collapsing it to nothing
+  const mg = stage.querySelector(".margin");
+  if (mg) { mg.style.opacity = "0"; mg.style.padding = "0"; mg.style.borderRight = "0"; mg.style.overflow = "hidden"; }
   const overlay = document.createElement("div");
   overlay.className = "sphere-intro";
   overlay.setAttribute("aria-hidden", "true");
@@ -217,23 +226,12 @@
       { transform: "translateY(" + -34 * S + "px)", opacity: 0 },
       { transform: "translateY(0)", opacity: 1 },
     ], { duration: 520, delay: 100 + i * 95, easing: "cubic-bezier(.34,1.56,.64,1)", fill: "forwards" })));
-    // then ALL of it moves left: the transcript column collapses (instantly —
-    // the glide below owns the motion; the stylesheet's 700ms grid transition
-    // is suppressed so the collapse can't fight the WAAPI), the hub glides to
-    // its final full-width position, and the mark rides the rail slot
-    const bodyEl = stage.querySelector(".body") || body;
-    bodyEl.style.transition = "none";
-    bodyEl.style.gridTemplateColumns = "0% minmax(0, 1fr)";
-    const mg = stage.querySelector(".margin");
-    if (mg) { mg.style.opacity = "0"; mg.style.padding = "0"; mg.style.borderRight = "0"; }
-    // same frame as the collapse: the hub's untranslated origin just moved
-    // left by the margin's width, so re-apply the shift that keeps the rail
-    // visually under the mark, then glide both to rest together
-    const m = arena.offsetLeft; // captured pre-collapse: this WAS the margin's width
-    hub.style.transform = "translateX(" + (dx + m) + "px)";
+    // then ALL of it moves left: the hub glides from its shifted stand-in
+    // position into its final flush-left full-width position, and the mark
+    // rides the rail slot (the margin column was already collapsed at load)
     const GLIDE = { duration: 640, easing: "cubic-bezier(.3,.7,.2,1)", fill: "forwards" };
     const slide = hub.animate([
-      { transform: "translateX(" + (dx + m) + "px)" },
+      { transform: "translateX(" + dx + "px)" },
       { transform: "translateX(0)" },
     ], GLIDE);
     // the mark rides into the superbot slot: measured now (rail under the
