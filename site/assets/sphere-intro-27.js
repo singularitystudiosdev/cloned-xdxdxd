@@ -45,6 +45,12 @@
     { name: "Windsurf", sym: "windsurf", bg: "var(--brand-windsurf)", ink: "var(--brand-windsurf-ink)" }, // green
     { name: "Replit", logo: "site/assets/intro/replit.png", bg: "var(--surface)" },              // orange
     { name: "Lovable", logo: "site/assets/intro/lovable.png", bg: "#ffffff" },                   // orange → pink → purple
+    // five more, sphere-only (user, 2026-09-09) — real artwork again
+    { name: "Zed", sym: "zed", bg: "var(--brand-zed)", ink: "var(--brand-zed-ink)" },              // blue
+    { name: "JetBrains", logo: "site/assets/intro/jetbrains.png", bg: "var(--surface)" },        // orange → magenta
+    { name: "Bolt", img: "site/assets/intro/bolt.png" },                                          // black
+    { name: "Base44", logo: "site/assets/intro/base44.png", bg: "var(--surface)" },              // orange
+    { name: "v0", logo: "site/assets/intro/v0.svg", bg: "#000000" },                              // black
   ];
   const SPIN_TILES = SPIN.length;
 
