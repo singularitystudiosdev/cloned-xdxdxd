@@ -58,8 +58,6 @@ const BUBBLE = [
   { from: 4.4, to: 4.7, text: "hi, i'm superbot.", mode: 'erase' },
   { from: 4.7, to: 6.1, text: 'scanning your machine, one sec...', mode: 'type' },
   { from: 7.0, to: 7.5, text: 'scanning your machine, one sec...', mode: 'erase' },
-  { from: 12.15, to: 12.75, text: 'all yours now.', mode: 'type' },
-  { from: 14.9, to: 15.15, text: 'all yours now.', mode: 'erase' },
 ];
 
 // ---------- inventory: 7 apps and 9 chips, four snap groups ----------

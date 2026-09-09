@@ -80,19 +80,31 @@
   overlay.className = "sphere-intro";
   overlay.setAttribute("aria-hidden", "true");
   overlay.style.cssText = "position:absolute;inset:0;overflow:hidden;z-index:30;pointer-events:none;";
-  arena.appendChild(overlay);
+  // mount in the STAGE — hub-boot's render wipes the arena's contents every
+  // frame, which erased the whole intro when the overlay lived there — but
+  // anchor the choreography at the ARENA's center (content area, right of the
+  // client rail), which is what "centered" means here
+  stage.appendChild(overlay);
 
   const holder = document.createElement("div");
   holder.style.cssText = "position:absolute;left:50%;top:50%;width:" + STAGE + "px;height:" + STAGE + "px;transform:translate(-50%,-50%);transform-style:preserve-3d;perspective:1100px;";
   overlay.appendChild(holder);
   let S = 1;
   const fit = () => {
-    const r = arena.getBoundingClientRect();
-    S = Math.min(1, Math.min(r.width, r.height) / (STAGE + 40));
+    const sr = stage.getBoundingClientRect();
+    const ar = arena.getBoundingClientRect();
+    S = Math.min(1, Math.min(ar.width, ar.height) / (STAGE + 40));
+    // the holder's center sits at the arena's center, in overlay px
+    holder.style.left = ((ar.left - sr.left) + ar.width / 2) + "px";
+    holder.style.top = ((ar.top - sr.top) + ar.height / 2) + "px";
     holder.style.transform = "translate(-50%,-50%) scale(" + S + ")";
   };
   fit();
   addEventListener("resize", fit);
+
+  // the arena's center in overlay px — every centered element anchors here
+  const acx = () => holder.offsetLeft;
+  const acy = () => holder.offsetTop;
 
   // the merge target — the site's own mascot mark on the dark tile, with the
   // same teal/magenta chromatic fringe the hero's big mascot carries
@@ -109,6 +121,12 @@
   bloom.appendChild(bloomTile);
   bloom.appendChild(mark);
   overlay.appendChild(bloom);
+  const placeBloom = () => {
+    bloom.style.left = acx() + "px";
+    bloom.style.top = acy() + "px";
+  };
+  placeBloom();
+  addEventListener("resize", placeBloom);
 
   const FIB = fibDirs(ICONS.length);
   const tiles = ICONS.map((icon) => {
@@ -217,7 +235,7 @@
   const uuColor = (p) => (p >= 70 ? "#e5636a" : p >= 40 ? "#e8b45a" : "#5fd08a");
   const showDropdown = () => {
     const pop = document.createElement("div");
-    pop.style.cssText = "position:absolute;left:50%;width:" + px(212) + "px;background:#14161c;border:1px solid rgba(255,255,255,.12);border-radius:" + px(16) + "px;box-shadow:0 0 0 1px rgba(255,255,255,.06),0 " + px(30) + "px " + px(80) + "px " + -px(20) + " rgba(0,0,0,.95);padding:" + px(6) + "px;display:grid;gap:" + px(2) + "px;transform-origin:50% 0;box-sizing:border-box;z-index:6;";
+    pop.style.cssText = "position:absolute;width:" + px(212) + "px;background:#14161c;border:1px solid rgba(255,255,255,.12);border-radius:" + px(16) + "px;box-shadow:0 0 0 1px rgba(255,255,255,.06),0 " + px(30) + "px " + px(80) + "px " + -px(20) + " rgba(0,0,0,.95);padding:" + px(6) + "px;display:grid;gap:" + px(2) + "px;transform-origin:50% 0;box-sizing:border-box;z-index:6;";
     pop.innerHTML = PH_APPS.map((a) =>
       '<div style="display:flex;align-items:center;gap:' + px(9) + 'px;padding:' + px(7) + 'px ' + px(9) + 'px;border-radius:' + px(11) + 'px;' + (a.on ? "background:rgba(255,255,255,.08);" : "") + '">' +
         '<img src="' + a.src + '" alt="" draggable="false" style="width:' + px(20) + 'px;height:' + px(20) + 'px;border-radius:' + px(6) + 'px;display:block;flex-shrink:0;object-fit:contain;">' +
@@ -229,7 +247,8 @@
         '<svg viewBox="0 0 12 12" style="width:' + px(14) + 'px;height:' + px(14) + 'px;stroke:currentColor;fill:none;stroke-width:1.4;stroke-linecap:round;"><path d="M6 1.8v8.4M1.8 6h8.4"/></svg>' +
         '<span style="flex:1;font-size:' + px(13) + 'px;font-weight:600;font-family:system-ui,-apple-system,sans-serif;">Add Platform</span>' +
       '</div>';
-    pop.style.top = cy() + (MARK * S) / 2 + px(14) + "px";
+    pop.style.left = (acx() - px(106)) + "px"; // px(212) / 2
+    pop.style.top = acy() + (MARK * S) / 2 + px(14) + "px";
     overlay.appendChild(pop);
     const sequence = async () => {
       await anim(pop, [
@@ -247,17 +266,14 @@
     sequence();
   };
 
-  // center of the stage in overlay px (the sphere's merge point); the holder
-  // is translate-centered, so the overlay's own midpoint IS the mark's center
-  const cy = () => overlay.getBoundingClientRect().height / 2;
+  // center of the arena in overlay px (the sphere's merge point)
 
   // beat 4 — the mark moves left: it glides to the bench's rail-button rest
   // (40px, left 14, center 63px from the top) as one clean final beat, and
   // only THEN hub-boot starts and the overlay dissolves — nothing overlaps
   const moveLeft = () => {
-    const r = overlay.getBoundingClientRect();
     const restCx = px(14 + 20), restCy = px(63);
-    const dx = restCx - r.width / 2, dy = restCy - r.height / 2;
+    const dx = restCx - acx(), dy = restCy - acy();
     const move = bloom.animate([
       { transform: "scale(1)" },
       { transform: "translate(" + dx + "px," + dy + "px) scale(" + px(40) / (MARK * S) + ")" },
