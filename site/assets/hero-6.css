@@ -526,10 +526,12 @@
    Every value is a site.css token; the two radii are --r-control (chips,
    buttons, the command box) and --r-surface (nothing here: the section has no
    card, the paste box is the widget's own). ---- */
+/* (owner, 2026-09-09) no rule between the animation and this section, and the
+   section sits right under the stage: the full-viewport min-height that
+   centred the heading ~150px down is gone, the top padding is one step */
 .dl-hero {
-  min-height: 100svh; display: grid; place-items: center;
-  padding: var(--sp-16) var(--gutter-r) var(--sp-16) var(--gutter-l);
-  border-top: 1px solid var(--line);
+  display: grid; place-items: center;
+  padding: var(--sp-8) var(--gutter-r) var(--sp-16) var(--gutter-l);
   position: relative; z-index: 1;
 }
 .dl-hero-in { width: 100%; max-width: var(--content); display: grid; justify-items: center; text-align: center; gap: var(--sp-4); }
@@ -554,6 +556,6 @@
 .dl-hero #oneliner, .dl-hero #dl-shell { width: 100%; }
 .dl-hero .anywhere { margin-top: var(--sp-2); }
 @media (max-width: 600px) {
-  .dl-hero { min-height: auto; padding-top: var(--sp-12); padding-bottom: var(--sp-12); }
+  .dl-hero { padding-top: var(--sp-8); padding-bottom: var(--sp-12); }
   .dl-cta { width: 100%; }
 }

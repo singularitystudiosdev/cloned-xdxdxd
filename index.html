@@ -4,12 +4,25 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <meta name="theme-color" content="#000000"/>
+<script>
+  // a reload always opens at the top, with no visible jump (owner, 2026-09-09):
+  // the browser would restore the old scroll position and then — with the
+  // page's smooth scroll-behavior — animate any correction. So restoration is
+  // taken over before the first paint, and the jump to the top is instant
+  // (scroll-behavior is held at auto until the page has settled).
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  document.documentElement.style.scrollBehavior = 'auto';
+  (function top() { window.scrollTo(0, 0); })();
+  addEventListener('DOMContentLoaded', function () { window.scrollTo(0, 0); });
+  addEventListener('pageshow', function () { window.scrollTo(0, 0); });
+  addEventListener('load', function () { window.scrollTo(0, 0); setTimeout(function () { document.documentElement.style.scrollBehavior = ''; }, 300); });
+</script>
 <link rel="apple-touch-icon" href="site/assets/apple-touch-icon.png"/>
 <link rel="manifest" href="site/assets/site.webmanifest"/>
 <title>superbot.gg · the agent to manage your agents</title>
 <link rel="icon" href="site/assets/favicon.svg" type="image/svg+xml"/>
 <link rel="stylesheet" href="site/assets/site.css"/>
-<link rel="stylesheet" href="site/assets/hero-5.css"/>
+<link rel="stylesheet" href="site/assets/hero-6.css"/>
 <link rel="stylesheet" href="site/assets/hub-boot-3.css"/>
 <meta name="description" content="a tiny helper that lives on your machines 24/7: your AI apps on the subscriptions you already pay for, kept fast, kept tidy, and the annoying stuff fixed before you see it."/>
 <meta property="og:type" content="website"/>
@@ -431,7 +444,7 @@
 
   // the headline editor: open the page with ?edit to tune the hero lockup
   // (headline text, size, position, mark size, gap) live, then Copy CSS
-  // and paste the block into hero-5.css / the .sb-words block in this file
+  // and paste the block into hero-6.css / the .sb-words block in this file
   if (new URLSearchParams(location.search).has('edit')) import('./site/assets/hero-edit-4.js');
 </script>
 </body>

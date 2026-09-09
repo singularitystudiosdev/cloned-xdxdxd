@@ -5,7 +5,7 @@
 //   layout: the whole lockup's size, the mark's size, the space above the
 //           lockup, the space between it and the animation, and the
 //           animation's width
-// Values write straight to custom properties (hero-5.css) so what you see is
+// Values write straight to custom properties (hero-6.css) so what you see is
 // what ships; "Copy CSS" puts the exact override lines + the .sb-words markup
 // on the clipboard to paste back. Nothing here loads without ?edit.
 (() => {
@@ -107,7 +107,7 @@
   panel.querySelector("#he-reset").addEventListener("click", () => { v = { ...DEFAULTS }; tx.value = v.text; tg.value = v.tag; apply(); save(); msg("reset to the shipped values"); });
   panel.querySelector("#he-copy").addEventListener("click", async () => {
     const s = cssBlock();
-    try { await navigator.clipboard.writeText(s); msg("copied — paste the two CSS lines into hero-5.css and the .sb-words block into index.html"); }
+    try { await navigator.clipboard.writeText(s); msg("copied — paste the two CSS lines into hero-6.css and the .sb-words block into index.html"); }
     catch (e) { console.error("[hero-edit] clipboard refused:", e); window.prompt("copy this:", s); }
   });
   const msg = (t) => { panel.querySelector("#he-msg").textContent = t; };
