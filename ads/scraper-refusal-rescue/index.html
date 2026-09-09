@@ -429,9 +429,8 @@
     wbStart: 9200,
     cursorGo: 12800, cursorDown: 14200, cursorUp: 14700,
     dive: 15100,
-    srcOn: 15600, loadChip: 15600, loadDone: 17200,
+    srcOn: 15600, loadChip: 15600,
     mergeT: 4000, // inside scene clock
-    hubFade: 15600 + 6400,
     msg1: 15600 + 7400,
     ansOn: 23800,
     proseStart: 24400, proseEnd: 26400,
@@ -575,6 +574,8 @@ if __name__ == "__main__":
         uMsg.style.display = "";
         typeInto(uText, PROMPT, t, T.send, T.send + 60); // lands instantly as a sent bubble
         if (t > T.send + 60) uText.textContent = PROMPT;
+      } else {
+        uMsg.style.display = "none"; uText.textContent = "";
       }
       // loader then reply
       bLoad.style.display = t >= T.bubble && t < T.replyStart ? "" : "none";
@@ -788,6 +789,8 @@ if __name__ == "__main__":
     document.getElementById("wordmark").classList.remove("slide");
     replayBtn.classList.remove("show");
     scenes.chat.style.transform = ""; scenes.chat.style.opacity = "";
+    uMsg.style.display = "none"; uText.textContent = "";
+    bLoad.style.display = "none"; bMsg.style.display = "none";
     bloom.style.transform = ""; bloom.style.opacity = "0";
   };
   replayBtn.addEventListener("click", () => { clock = 0; resetDynamics(); });
