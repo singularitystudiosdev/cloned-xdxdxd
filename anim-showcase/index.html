@@ -210,7 +210,7 @@
   ], { duration: LOOP_END });
   const renderFlip = (clock) => { for (const c of cues) c.a.currentTime = Math.min(c.dur, Math.max(0, clock)); };
 
-  if (REDUCE) { renderSphere(1500); renderFlip(920); return; } // held mid-spin + landed tile
+  if (REDUCE) { renderSphere(MERGE_T + 220); renderFlip(920); return; } // tiles merged away + landed tile — a frame the real sequence ends on
 
   // ---------- one rAF, two independent loop clocks ----------
   let aClock = 0, bClock = 0, last = null;
