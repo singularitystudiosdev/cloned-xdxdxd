@@ -85,7 +85,6 @@
 <script>
 (() => {
   const REDUCE = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const lerp = (a, b, t) => a + (b - a) * t;
   const clamp01 = (t) => Math.min(1, Math.max(0, t));
 
   // ---------- scale each box's fixed 460px design space to its square ----------
@@ -130,11 +129,13 @@
   });
   const POP_START = 120, POP_STAGGER = 60;
   const popAt = (i) => POP_START + i * POP_STAGGER;
-  const MERGE_T = 4000;
-  const OMEGA0 = 0.35, OMEGA_MAX = 21;
+  const SPINUP_T = 4000;
+  const OMEGA0 = 0.35, OMEGA_MAX = 21, OMEGA_CRUISE = 2.4;
+  // the site's exact exponential spin-up curve, capped at a cruise speed —
+  // no merge: the sphere just keeps spinning forever
   const omegaAt = (tMs) => {
-    const x = clamp01(tMs / MERGE_T);
-    return OMEGA0 * Math.exp(Math.log(OMEGA_MAX / OMEGA0) * Math.pow(x, 1.55));
+    const x = clamp01(tMs / SPINUP_T);
+    return Math.min(OMEGA_CRUISE, OMEGA0 * Math.exp(Math.log(OMEGA_MAX / OMEGA0) * Math.pow(x, 1.55)));
   };
   const FIB = fibDirs(N);
   const HAIRLINE = "inset 0 0 0 1px rgb(255 255 255 / .14)";
@@ -160,29 +161,24 @@
   });
   const place3 = (el, x, y, z) => { el.style.transform = "translate3d(" + (C - TILE / 2 + x) + "px," + (C - TILE / 2 + y) + "px," + z + "px)"; };
 
-  // the spin angle is the integral of omega, advanced in 1ms steps so every
-  // loop wraps onto the same angle trajectory
+  // the spin angle is the integral of omega, advanced in 1ms steps; the clock
+  // never wraps, so the sphere spins forever without a reset jump
   let ang = 0, angClock = 0;
   const advanceAng = (to) => {
-    if (to < angClock) { ang = 0; angClock = 0; }
-    const end = Math.min(to, MERGE_T);
-    for (let t = angClock; t < end; t += 1) ang += 0.001 * omegaAt(t + 0.5);
+    for (let t = angClock; t < to; t += 1) ang += 0.001 * omegaAt(t + 0.5);
     angClock = to;
   };
   const renderSphere = (clock) => {
     advanceAng(clock);
-    const gone = clock >= MERGE_T + 220;
     for (let i = 0; i < N; i++) {
       const el = tiles[i];
-      if (gone || clock < popAt(i)) { el.style.opacity = "0"; continue; }
+      if (clock < popAt(i)) { el.style.opacity = "0"; continue; }
       const v = rotY3(FIB[i], ang);
-      const mergeT = Math.pow(clamp01((clock - (MERGE_T - 450)) / 450), 1.7);
-      const x = lerp(v.x * R, 0, mergeT), y = lerp(v.y * R, 0, mergeT), z = v.z * lerp(R, 10, mergeT);
+      const x = v.x * R, y = v.y * R, z = v.z * R;
       const depth = (z + 190) / 380;
       place3(el, x, y, z);
-      el.style.opacity = String(Math.min(1, (0.16 + 0.84 * depth) * (1 - clamp01((clock - MERGE_T) / 220))));
-      const blurT = clamp01((clock - MERGE_T * 0.62) / (MERGE_T * 0.38));
-      const blur = Math.pow(blurT, 2) * 3.6 + (depth < 0.5 ? (0.5 - depth) * 3 : 0);
+      el.style.opacity = String(0.16 + 0.84 * depth);
+      const blur = depth < 0.5 ? (0.5 - depth) * 3 : 0;
       el.style.filter = blur > 0.05 ? "blur(" + blur.toFixed(2) + "px)" : "none";
     }
   };
@@ -211,7 +207,7 @@
   ], { duration: LOOP_END });
   const renderFlip = (clock) => { for (const c of cues) c.a.currentTime = Math.min(c.dur, Math.max(0, clock)); };
 
-  if (REDUCE) { renderSphere(MERGE_T + 220); renderFlip(920); return; } // tiles merged away + landed tile — a frame the real sequence ends on
+  if (REDUCE) { renderSphere(2600); renderFlip(920); return; } // held at cruise spin + landed tile
 
   // ---------- one rAF, two independent loop clocks ----------
   let aClock = 0, bClock = 0, last = null;
@@ -219,7 +215,7 @@
     if (last == null) last = ts;
     const dMs = Math.min(50, ts - last);
     last = ts;
-    aClock = (aClock + dMs) % (MERGE_T + 440); // converge+fade, beat of dark, re-pop
+    aClock = aClock + dMs; // spins forever, no loop reset
     bClock = (bClock + dMs) % LOOP_END;
     renderSphere(aClock);
     renderFlip(bClock);
